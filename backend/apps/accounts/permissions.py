@@ -9,6 +9,16 @@ from rest_framework.permissions import SAFE_METHODS, BasePermission
 from .models import User
 
 
+def is_staff_user(user) -> bool:
+    """Staff check that is safe on AnonymousUser.
+
+    ``user.is_agency_staff`` only exists on our User model, so any code that
+    branches on it must not assume the request is authenticated — schema
+    generation and unauthenticated probes both pass AnonymousUser through.
+    """
+    return bool(user and user.is_authenticated and getattr(user, "is_agency_staff", False))
+
+
 class IsStudent(BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated and request.user.is_student)

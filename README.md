@@ -88,13 +88,24 @@ Or `docker compose up` for the whole stack.
 ### Tests
 
 ```bash
-cd backend && .venv/bin/python -m pytest        # 59 tests
+cd backend && .venv/bin/python -m pytest        # 87 tests
+cd backend && .venv/bin/ruff check .
 cd frontend && npx tsc --noEmit && npm run build
 ```
 
 The backend suite covers the four engines' invariants specifically: schema
 validation, form versioning, checklist snapshot isolation, progress
-calculation, webhook signature/idempotency, and referral fraud handling.
+calculation, webhook signature/idempotency, and referral fraud handling — plus
+the API permission boundaries (a student cannot reach another student's
+records; a document reviewer cannot reach gateway credentials) and the full
+signup → pay → apply → upload → review journey.
+
+Before deploying, confirm the production posture is clean:
+
+```bash
+DJANGO_DEBUG=False DJANGO_ALLOWED_HOSTS=api.yourdomain.com \
+  .venv/bin/python manage.py check --deploy
+```
 
 ---
 
@@ -154,13 +165,33 @@ The policy documents themselves are still to be written.
 
 ---
 
+## The API
+
+83 endpoints, in three bands with distinct permission postures:
+
+| Prefix | Who | Notes |
+|---|---|---|
+| `/api/auth/` | public / self-service | signup, login, JWT refresh, email verification, password reset. Signup and reset are rate-limited; neither confirms whether an address exists. |
+| `/api/` | students | every queryset is scoped to the caller, so no object-level check can be forgotten on a new action. Most routes sit behind `HasPlatformAccess`. |
+| `/api/admin/` | staff | each route names the `AdminProfile` permission it needs, e.g. `can_review_documents`, `can_manage_payment_config`. |
+
+Browse it at `/api/docs/`, or generate a typed client from `/api/schema/`.
+
+Two rules the API enforces that are easy to lose later:
+
+* **Prices come from the server.** `POST /api/payments/initiate/` takes no
+  amount. Posting one is ignored.
+* **Secrets are write-only.** Gateway configs accept `secret_key` and
+  `webhook_secret` but never return them — only a fingerprint, so staff can
+  confirm which key is live.
+
 ## Not yet built
 
-Phase 1–2 data model and engines are in place. Still outstanding:
+Phase 1–2 engines, data model and API are in place. Still outstanding:
 
-- DRF serializers/viewsets and the auth endpoints (only the webhook endpoints are wired)
-- The admin form-builder UI (the engine and its validation are done; the visual editor is not)
+- The admin form-builder UI (the engine, validation and its API are done; the visual editor is not)
 - Student and admin dashboard pages beyond the landing page
-- SMS/WhatsApp delivery (the notification records and queue exist; no provider is wired)
+- SMS/WhatsApp delivery (notification records and the queue exist; no provider is wired)
 - Flutterwave refunds are implemented but untested against a live account
+- Two-factor enrolment flow for staff (django-otp is installed and gating the Django admin; there is no enrolment UI yet)
 - Terms, privacy and refund policy copy

@@ -309,3 +309,10 @@ class ReferralPayout(BaseModel):
 
     def __str__(self) -> str:
         return f"Payout {self.currency} {self.amount} to {self.code.code} ({self.get_status_display()})"
+
+
+# Module-level aliases for drf-spectacular's ENUM_NAME_OVERRIDES.
+REFERRAL_PAYOUT_STATUS_CHOICES = ReferralPayout.Status.choices
+REFERRAL_REWARD_STATUS_CHOICES = ReferralReward.Status.choices
+REFERRAL_TRIGGER_CHOICES = ReferralRewardRule.Trigger.choices
+REFERRAL_OWNER_TYPE_CHOICES = ReferralCode.OwnerType.choices

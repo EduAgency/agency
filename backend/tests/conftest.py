@@ -17,6 +17,23 @@ from apps.schools.models import (
 User = get_user_model()
 
 
+@pytest.fixture(autouse=True)
+def isolated_media(settings, tmp_path):
+    """Keep uploaded test files out of the repo's media directory.
+
+    Autouse: any test that uploads should get a throwaway location without
+    having to remember to ask for one.
+    """
+    settings.MEDIA_ROOT = tmp_path / "media"
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        # Skip the manifest storage in tests — there is no collectstatic run.
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+    return settings.MEDIA_ROOT
+
+
 @pytest.fixture
 def student(db):
     user = User.objects.create_user(email="ada@example.com", password="pass-word-1234", first_name="Ada")
@@ -105,3 +122,63 @@ def access_fee_payment(student, gateway_config):
         amount=Decimal("5000.00"),
         currency="NGN",
     )
+
+
+@pytest.fixture
+def api():
+    from rest_framework.test import APIClient
+
+    return APIClient()
+
+
+@pytest.fixture
+def as_student(api, student):
+    api.force_authenticate(user=student.user)
+    return api
+
+
+@pytest.fixture
+def paid_student(student):
+    """A student who has actually paid — most of the platform is behind this."""
+    student.has_platform_access = True
+    student.stage = student.Stage.PAID
+    student.save()
+    return student
+
+
+@pytest.fixture
+def as_paid_student(api, paid_student):
+    api.force_authenticate(user=paid_student.user)
+    return api
+
+
+@pytest.fixture
+def reviewer(db):
+    """Staff who may review documents and nothing else."""
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    return User.objects.create_user(
+        email="doc.reviewer@nasuru.com", password="pass-word-1234",
+        role=User.Role.REVIEWER, is_staff=True,
+    )
+
+
+@pytest.fixture
+def as_reviewer(api, reviewer):
+    api.force_authenticate(user=reviewer)
+    return api
+
+
+@pytest.fixture
+def superadmin(db):
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    return User.objects.create_superuser(email="boss@nasuru.com", password="pass-word-1234")
+
+
+@pytest.fixture
+def as_admin(api, superadmin):
+    api.force_authenticate(user=superadmin)
+    return api

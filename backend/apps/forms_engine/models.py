@@ -279,3 +279,10 @@ class FormSubmission(BaseModel):
 
     def answer(self, key, default=None):
         return self.data.get(key, default)
+
+
+# Module-level aliases for drf-spectacular's ENUM_NAME_OVERRIDES.
+FORM_STATUS_CHOICES = FormDefinition.Status.choices
+FORM_AUDIENCE_CHOICES = FormDefinition.Audience.choices
+FORM_PURPOSE_CHOICES = FormDefinition.Purpose.choices
+SUBMISSION_STATUS_CHOICES = FormSubmission.Status.choices

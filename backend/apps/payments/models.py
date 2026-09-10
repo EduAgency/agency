@@ -301,3 +301,15 @@ class ReconciliationRun(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.gateway} reconciliation {self.started_at:%Y-%m-%d} — {self.mismatches_found} mismatches"
+
+
+# --- Module-level choice aliases -------------------------------------------
+# drf-spectacular's ENUM_NAME_OVERRIDES resolves "module.attribute" only, so
+# nested Model.Status.choices paths must be surfaced here. Naming these keeps
+# the generated TypeScript client readable ("PaymentStatusEnum", not
+# "Status399Enum").
+PAYMENT_STATUS_CHOICES = Payment.Status.choices
+PAYMENT_PURPOSE_CHOICES = Payment.Purpose.choices
+GATEWAY_CHOICES = Gateway.choices
+REFUND_STATUS_CHOICES = Refund.Status.choices
+WEBHOOK_STATUS_CHOICES = WebhookEvent.Status.choices

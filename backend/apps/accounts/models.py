@@ -311,3 +311,9 @@ class EmailVerificationToken(TimeStampedModel):
     @property
     def is_usable(self) -> bool:
         return self.used_at is None and self.expires_at > timezone.now()
+
+
+# Module-level aliases for drf-spectacular's ENUM_NAME_OVERRIDES.
+USER_ROLE_CHOICES = User.Role.choices
+STUDENT_STAGE_CHOICES = StudentProfile.Stage.choices
+STUDENT_SOURCE_CHOICES = StudentProfile.Source.choices

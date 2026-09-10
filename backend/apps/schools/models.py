@@ -403,3 +403,11 @@ class RequirementItem(BaseModel):
             self.linked_form_id or self.data_spec
         ):
             raise ValidationError("Form-based items need either a linked form or a data spec.")
+
+
+# Module-level aliases for drf-spectacular's ENUM_NAME_OVERRIDES.
+REQUIREMENT_SET_STATUS_CHOICES = SchoolRequirementSet.Status.choices
+REQUIREMENT_EVIDENCE_CHOICES = RequirementItem.Evidence.choices
+REQUIREMENT_PRIORITY_CHOICES = RequirementItem.Priority.choices
+SCHOOL_KIND_CHOICES = School.Kind.choices
+PROGRAMME_LEVEL_CHOICES = Programme.Level.choices

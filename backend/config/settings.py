@@ -219,6 +219,39 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    # Several models have a "status" or "purpose" field with different choices.
+    # Naming them explicitly keeps the generated client's types readable
+    # instead of "Status399Enum".
+    "ENUM_NAME_OVERRIDES": {
+        "PaymentStatusEnum": "apps.payments.models.PAYMENT_STATUS_CHOICES",
+        "PaymentPurposeEnum": "apps.payments.models.PAYMENT_PURPOSE_CHOICES",
+        "GatewayEnum": "apps.payments.models.GATEWAY_CHOICES",
+        "RefundStatusEnum": "apps.payments.models.REFUND_STATUS_CHOICES",
+        "WebhookStatusEnum": "apps.payments.models.WEBHOOK_STATUS_CHOICES",
+        "ApplicationStatusEnum": "apps.applications.models.APPLICATION_STATUS_CHOICES",
+        "ChecklistItemStatusEnum": "apps.applications.models.CHECKLIST_ITEM_STATUS_CHOICES",
+        "DocumentUploadStatusEnum": "apps.applications.models.DOCUMENT_UPLOAD_STATUS_CHOICES",
+        # Forms and requirement sets share one draft/published/archived
+        # lifecycle by design, so they share one enum name.
+        "PublishStatusEnum": "apps.forms_engine.models.FORM_STATUS_CHOICES",
+        "FormAudienceEnum": "apps.forms_engine.models.FORM_AUDIENCE_CHOICES",
+        "FormPurposeEnum": "apps.forms_engine.models.FORM_PURPOSE_CHOICES",
+        "SubmissionStatusEnum": "apps.forms_engine.models.SUBMISSION_STATUS_CHOICES",
+        "ReferralPayoutStatusEnum": "apps.referrals.models.REFERRAL_PAYOUT_STATUS_CHOICES",
+        "ReferralRewardStatusEnum": "apps.referrals.models.REFERRAL_REWARD_STATUS_CHOICES",
+        "ReferralTriggerEnum": "apps.referrals.models.REFERRAL_TRIGGER_CHOICES",
+        "ReferralOwnerTypeEnum": "apps.referrals.models.REFERRAL_OWNER_TYPE_CHOICES",
+        "UserRoleEnum": "apps.accounts.models.USER_ROLE_CHOICES",
+        "StudentStageEnum": "apps.accounts.models.STUDENT_STAGE_CHOICES",
+        "StudentSourceEnum": "apps.accounts.models.STUDENT_SOURCE_CHOICES",
+        "RequirementEvidenceEnum": "apps.schools.models.REQUIREMENT_EVIDENCE_CHOICES",
+        "RequirementPriorityEnum": "apps.schools.models.REQUIREMENT_PRIORITY_CHOICES",
+        "SchoolKindEnum": "apps.schools.models.SCHOOL_KIND_CHOICES",
+        "ProgrammeLevelEnum": "apps.schools.models.PROGRAMME_LEVEL_CHOICES",
+        "NotificationStatusEnum": "apps.notifications.models.NOTIFICATION_STATUS_CHOICES",
+        "NotificationCategoryEnum": "apps.notifications.models.NOTIFICATION_CATEGORY_CHOICES",
+        "NotificationChannelEnum": "apps.notifications.models.NOTIFICATION_CHANNEL_CHOICES",
+    },
 }
 
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")

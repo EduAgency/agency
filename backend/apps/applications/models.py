@@ -459,3 +459,10 @@ class DocumentUpload(BaseModel):
             digest.update(chunk)
         file_obj.seek(0)
         return digest.hexdigest()
+
+
+# Module-level aliases for drf-spectacular's ENUM_NAME_OVERRIDES — see the note
+# in apps/payments/models.py.
+APPLICATION_STATUS_CHOICES = Application.Status.choices
+CHECKLIST_ITEM_STATUS_CHOICES = ChecklistItemInstance.Status.choices
+DOCUMENT_UPLOAD_STATUS_CHOICES = DocumentUpload.Status.choices

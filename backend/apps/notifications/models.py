@@ -131,3 +131,9 @@ class Message(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.sender or 'system'}: {self.body[:60]}"
+
+
+# Module-level aliases for drf-spectacular's ENUM_NAME_OVERRIDES.
+NOTIFICATION_STATUS_CHOICES = Notification.Status.choices
+NOTIFICATION_CATEGORY_CHOICES = Notification.Category.choices
+NOTIFICATION_CHANNEL_CHOICES = NotificationTemplate.Channel.choices

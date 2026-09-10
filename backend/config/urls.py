@@ -18,7 +18,10 @@ def health(_request):
 urlpatterns = [
     path("health/", health, name="health"),
     path("admin/", admin.site.urls),
+    # Webhook receivers sit outside the DRF stack on purpose: unauthenticated,
+    # CSRF-exempt, and verified by signature instead.
     path("api/payments/", include("apps.payments.urls")),
+    path("api/", include("config.api_urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]
