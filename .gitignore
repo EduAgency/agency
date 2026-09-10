@@ -1,0 +1,36 @@
+# Secrets — never commit. Losing FIELD_ENCRYPTION_KEY makes stored gateway
+# credentials unrecoverable, so back it up in a password manager, not here.
+.env
+.env.*
+!.env.example
+!.env.local.example
+*.pem
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Django
+staticfiles/
+media/
+*.log
+
+# Node / Next
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+
+# Student documents must never end up in git
+backend/media/documents/
+
+# OS / editor
+.DS_Store
+.idea/
+*.swp

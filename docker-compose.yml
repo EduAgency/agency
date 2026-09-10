@@ -1,0 +1,86 @@
+# Local development stack.
+#
+# Note what is NOT here: a serverless runtime. The backend needs a persistent
+# worker process for webhook processing, file uploads and reconciliation, which
+# is why Django lives on Render/Railway/Fly and only the Next.js frontend goes
+# on Vercel (plan §2.1).
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: nasuru
+      POSTGRES_USER: nasuru
+      POSTGRES_PASSWORD: nasuru
+    ports:
+      # Host ports are offset to avoid clashing with other local stacks.
+      - "5442:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nasuru -d nasuru"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6390:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    command: python manage.py runserver 0.0.0.0:8000
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgres://nasuru:nasuru@db:5432/nasuru
+      REDIS_URL: redis://redis:6379/0
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,api
+    volumes:
+      - ./backend:/app
+      - media:/app/media
+    ports:
+      - "8010:8000"
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  worker:
+    build: ./backend
+    command: celery -A config worker --loglevel=info --concurrency=2
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgres://nasuru:nasuru@db:5432/nasuru
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - media:/app/media
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  beat:
+    build: ./backend
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgres://nasuru:nasuru@db:5432/nasuru
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+volumes:
+  pgdata:
+  redisdata:
+  media:
