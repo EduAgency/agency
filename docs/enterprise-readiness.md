@@ -1,0 +1,513 @@
+# Enterprise readiness
+
+**Reviewed at** `b14cd0e` on `main` · **Scope** `frontend/src` (26 files, 9 routes) and
+`backend/apps` (8 apps, 83 endpoints) · **Date** 10 September 2026
+
+Every finding below cites a file and line in this repository and was verified against the
+source. WCAG references are to 2.2 Level AA except 2.3.3, which is AAA and included because
+the fix is a three-line CSS block.
+
+---
+
+## The verdict
+
+The four engines are sound. Versioned form schemas, snapshotted checklists,
+webhook-verified payments, payment-gated referral rewards — that is the hard part and it is
+done, with 87 tests covering the invariants specifically.
+
+The gap is the surface. The student app has broken links, no accessibility layer, and the
+agency's own staff still work out of Django admin.
+
+Nobody evaluating this product will test checklist snapshot isolation. They will tab through
+a form, hit a 404 on the privacy policy, and ask who has MFA.
+
+| Band | Count | What it means |
+|---|---|---|
+| **Blocking** | 4 | Visible breakage reachable within three clicks of the landing page |
+| **High** | 8 | WCAG 2.2 AA failures and resilience gaps |
+| **Medium** | 6 | Systemic — cheap now, expensive at 40 screens |
+| **Capability** | 7 | Absent from the product, not merely unpolished |
+
+---
+
+## Section A — Blocking defects
+
+### A1 · Six linked routes return 404, including every legal page
+
+The landing page footer and dashboard link to `/privacy`, `/terms`, `/refund-policy`,
+`/contact`, `/documents` and `/forgot-password`. None exist under `src/app/`. There is no
+`not-found.tsx` either, so each renders the stock Next.js 404.
+
+**Why it matters** — the landing page's own argument is that this audience is wary of scams
+and that hiding the fee costs trust. A dead privacy policy costs more. The footer
+simultaneously asserts processing "in line with the Nigeria Data Protection Regulation"; an
+unreachable policy makes that claim indefensible.
+
+**Fix** — author the four legal/contact pages, build `/documents` as a cross-application
+document library, add a branded `not-found.tsx`, and add a CI check that every internal
+`href` resolves to a route.
+
+### A2 · Password reset is throttled on the backend but has no front door
+
+DRF declares a `password_reset` throttle scope at `5/hour` in `config/settings.py:206`. The
+login page links to `/forgot-password`. That route does not exist.
+
+**Why it matters** — a student who forgets their password after paying the ₦5,000 access fee
+has no recovery path and becomes a support ticket. This is the highest-volume support driver
+in any consumer product.
+
+**Fix** — request-reset and confirm-reset screens against the existing endpoints, plus
+resend-verification. The dashboard already nags for email verification with no way to re-send
+the link.
+
+### A3 · File validation errors are reported through `window.alert()`
+
+`frontend/src/components/forms/FormRenderer.tsx:319` — when a passport scan exceeds the size
+limit or has the wrong type, the app fires a native modal, clears the input and drops the
+value.
+
+**Why it matters** — a blocking OS dialog is unstyleable, untranslatable, destroys context on
+mobile, and is dismissed before assistive tech can associate it with the control. The message
+vanishes on dismissal, so the student cannot re-read what went wrong. Every other error path
+in the codebase is handled properly; this one is the exception.
+
+**Fix** — route file errors through the same per-field `role="alert"` element every other
+field type already uses, and keep the message on screen until the input changes.
+
+### A4 · Grouped choice fields have a label pointing at nothing
+
+`FormRenderer.tsx:167` renders `<label htmlFor={field.key}>` for the group question. For
+`radio`, `multiselect` and `checkbox_group`, the `common` props object carrying
+`id={field.key}` is never spread onto any input — so the label references an element ID that
+does not exist, and the options sit in a bare `<div>` with no `<fieldset>`, `<legend>` or
+`role="radiogroup"`.
+
+**Why it matters** — a screen reader user hears "Yes, radio button, 1 of 1" with no question
+attached and no group position. On the intake form, where conditional branching means the
+question text is the only thing distinguishing two adjacent Yes/No pairs, the form becomes
+unanswerable non-visually. The same code path drops `aria-describedby`, so help text and
+errors are silent too.
+
+**Fix** — render grouped choices as `<fieldset>` + `<legend>`, wire `aria-describedby` and
+`aria-invalid` onto the fieldset, give each option a unique `id`.
+
+*WCAG 1.3.1, 4.1.2.*
+
+---
+
+## Section B — Accessibility conformance
+
+Measured against WCAG 2.2 AA — the bar written into most enterprise procurement and into
+Nigeria's Discrimination Against Persons with Disabilities (Prohibition) Act.
+
+Across all 26 source files the app contains **zero** skip links, **zero** live regions,
+**zero** `:focus-visible` declarations, **zero** `sr-only` text and **zero** reduced-motion
+guards.
+
+The good news: the form layer already gets `aria-invalid`, `aria-describedby` and
+`role="alert"` right, so the pattern to extend is established rather than absent.
+
+| # | Finding | Severity | WCAG |
+|---|---|---|---|
+| B1 | No skip link, no landmark structure | High | 2.4.1 |
+| B2 | Focus styling inconsistent, never `:focus-visible` | High | 2.4.7, 2.4.11 |
+| B3 | Failed submit scrolls but never moves focus | High | 3.3.1, 2.4.3 |
+| B4 | Asynchronous outcomes are never announced | High | 4.1.3 |
+| B5 | Motion is unconditional | High | 2.3.3 |
+| B6 | Product renders in Arial; theme layer is dead | High | — |
+| B7 | No error boundaries | High | — |
+| B8 | Upload has no progress, retry or resume | High | — |
+| B9 | Nothing enforces any of this | Medium | — |
+| B10 | Colour and target sizes never verified | Medium | 1.4.3, 2.5.8 |
+
+### B1 · No skip link and no landmark structure
+
+`layout.tsx` renders `<body>` → `SessionProvider` → page. Each page hand-rolls its own
+`<main>` and its own `<nav>`; there is no `<header>` banner, no skip target, and no
+`aria-label` distinguishing the two navs on the dashboard.
+
+**Fix** — an app shell with a visually-hidden-until-focused skip link, a labelled banner, and
+one `<main id="content">`.
+
+### B2 · Focus styling is inconsistent and never uses `:focus-visible`
+
+Inputs set `outline-none` and substitute a `focus:ring-1`. Buttons, links, the checklist
+upload triggers and the landing-page CTA declare no focus style at all and fall back to the
+UA outline — a different shape, colour and offset on every element, and close to invisible on
+a dark surface.
+
+**Fix** — one global `:focus-visible` token (ring colour, width, offset) applied to every
+interactive element, with a documented 3:1 contrast against both adjacent surfaces.
+
+### B3 · Failed submit scrolls to the error but never moves focus
+
+`FormRenderer.tsx:67` calls `scrollIntoView` on the first invalid field and returns. Keyboard
+focus stays on the submit button; nothing is announced. Per field, `FormRenderer.tsx:189`
+renders `errors[0]` only, discarding the rest.
+
+**Fix** — an error summary at the top of the form (a focusable heading listing every failure
+as an in-page link), move focus to it on failed submit, show all messages per field.
+
+### B4 · Asynchronous outcomes are never announced
+
+Eight routes gate on `if (loading) return <main>Loading…</main>`. When data arrives the whole
+subtree is swapped with no `aria-live` region and no `aria-busy`. A document upload
+succeeding, a checklist re-syncing, a payment verifying — all change silently.
+
+**Fix** — one app-level polite live region plus a toast primitive; `aria-busy` on regions
+being refreshed; skeletons that preserve layout instead of a text swap.
+
+### B5 · Motion is unconditional
+
+`behavior: "smooth"` at `FormRenderer.tsx:67`, and `transition` on every button, card and
+progress bar, with no `prefers-reduced-motion` query anywhere in the codebase.
+
+**Fix** — a global reduced-motion block, and read the preference in JS before choosing a
+scroll behaviour.
+
+### B6 · The entire product renders in Arial
+
+`globals.css:25` sets `font-family: Arial, Helvetica, sans-serif` on `body`. Lines 11–12 map
+`--font-sans` to `--font-geist-sans`, a variable never defined because the `next/font` loader
+that would define it was removed from `layout.tsx`. Separately, `globals.css` defines a
+`--background`/`--foreground` pair under a `prefers-color-scheme` query that the body's
+Tailwind `bg-white dark:bg-slate-950` classes immediately override.
+
+Two competing theme systems, one of which does nothing, and a typeface nobody chose. This is
+leftover `create-next-app` boilerplate, and it is the difference a buyer notices in the first
+two seconds.
+
+**Fix** — delete the dead vars, load a real typeface pair through `next/font`, define one
+token layer that both Tailwind and raw CSS read from.
+
+### B7 · No error boundaries — one thrown render blanks the app
+
+No `error.tsx`, `global-error.tsx`, `loading.tsx` or `not-found.tsx` exists anywhere under
+`src/app/`. Sentry is wired on the backend (`settings.py:323`) but there is no browser-side
+reporting, so front-end crashes are invisible.
+
+**Fix** — route-segment error boundaries with a recovery action, plus `@sentry/nextjs` with
+session replay on errors only.
+
+### B8 · Document upload has no progress, no retry and no resume
+
+`lib/applications.ts:30` posts a `FormData` through `fetch`. `fetch` cannot report upload
+progress; on failure `ChecklistView` shows "That upload didn't go through. Try again." and
+the student re-picks the file from scratch.
+
+**Why it matters** — this is the product's central action, performed by students on Nigerian
+mobile data, uploading multi-megabyte scans of passports and transcripts. A silent
+progressless upload that can fail at 90% is the most likely single cause of funnel
+abandonment.
+
+**Fix** — `XMLHttpRequest` or presigned direct-to-S3 upload with a determinate progress bar,
+automatic retry with backoff, client-side image compression, drag-and-drop and camera capture
+on mobile.
+
+### B9 · Nothing enforces any of this
+
+`eslint.config.mjs` extends `core-web-vitals` and `typescript` only — no `jsx-a11y`.
+`package.json` has no test script, no test runner and no dependencies beyond Next and React.
+The backend has 87 tests; the frontend has none.
+
+**Fix** — `eslint-plugin-jsx-a11y` at error level, Vitest + Testing Library for the form
+engine's conditional logic, Playwright with `@axe-core/playwright` asserting zero violations
+on every route, and a keyboard-only walkthrough of intake → upload → checkout in CI.
+
+### B10 · Colour, contrast and target sizes are chosen per component, never verified
+
+Every colour is an inline Tailwind literal with a hand-written `dark:` twin — `STATUS_STYLES`
+in `ui/index.tsx` carries sixteen. Checkboxes and radios are `h-4 w-4` (16px). No documented
+palette exists to check contrast against.
+
+Credit where due: `ProgressBar` already pairs its colour with a numeric percentage and
+`StatusBadge` always carries a text label — colour is never the sole signal, so WCAG 1.4.1
+holds.
+
+**Fix** — lift colour into semantic tokens (`--surface`, `--danger`, `--status-verified`…),
+verify each pair at AA in both themes once, set a 24px minimum interactive target.
+
+---
+
+## Section C — Capability gaps
+
+Not defects. Things the product does not have, each a line item on a standard enterprise
+security questionnaire or an NDPR data-protection audit.
+
+| Capability | Today | What is missing |
+|---|---|---|
+| **Staff workspace** | Django admin | The README calls Django admin "the agency's daily workspace". Reviewers verify passports, counsellors chase students and finance reconciles payments through generic CRUD screens. No review queue, no side-by-side document viewer, no bulk actions, no saved views, no keyboard shortcuts. The largest single gap between the product and its category. |
+| **MFA** | None | Zero references to TOTP, OTP or two-factor across all eight backend apps. Staff accounts hold students' passports and national identity documents behind a password alone. |
+| **SSO** | None | No SAML or OIDC. Blocks any partner institution or agency group requiring directory-managed accounts, and blocks SCIM deprovisioning when a counsellor leaves. |
+| **Session control** | JWT only | 30-minute access tokens with rotation, mirrored to `localStorage` — a deliberate, documented trade-off in `lib/auth/store.ts`. But no active-device list, no remote revoke, no "sign out everywhere" after a lost phone. Procurement flags `localStorage` token storage by default; the answer needs to be httpOnly cookies or a written compensating-control statement. |
+| **Notification prefs** | None | Email, SMS and WhatsApp templates exist with categories, and Celery Beat sends nudges — but no preference model, no per-channel opt-out, no unsubscribe, no quiet hours. Unsolicited SMS to Nigerian numbers with no opt-out is an NDPR exposure, not just an annoyance. |
+| **In-app inbox** | Threads exist | `MessageThread` and `Message` models are built, and the landing page promises "a counsellor you can message inside the platform" — with no messaging UI on any of the nine routes. A promised feature with no surface. |
+| **Data subject rights** | None | NDPR alignment is asserted publicly. NDPR grants access, rectification, portability and erasure. There is no export-my-data, no deletion request flow, no retention schedule and no soft-delete anywhere in the models — so an erasure request today means hand-written SQL against encrypted document records. |
+| **Audit trail** | Solid | A single `record()` entry point in `apps/core/audit.py` with a redaction allowlist covering passwords, tokens, signatures and gateway keys, used across 23 files. Genuinely enterprise-grade already — it needs a staff-facing viewer and an export, not rework. |
+| **Rate limiting** | Scoped | Signup, login, password reset and upload are throttled. The other ~79 endpoints are unlimited per user. |
+
+---
+
+## Section D — Perks that would earn their keep
+
+Filtered hard. Each removes a support ticket, a drop-off, or a manual step for staff — the
+three things that make software feel world-class rather than merely feature-rich.
+
+- **D1 · Make the checklist the product, not a list.** Each item already carries a category, a
+  status and a rejection reason. Add what happens next and when ("we review within 2 working
+  days"), a worked example of an acceptable document, and one "what should I do today" prompt
+  on the dashboard. The one thing an anxious applicant wants is to know they are not stuck.
+
+- **D2 · Autosave and resumability.** `onSaveDraft` exists in `FormRenderer` but must be
+  pressed. Debounced autosave with a visible "saved 12:04" stamp, restoration on return, and a
+  warning before navigating away with unsaved answers.
+
+- **D3 · A staff review queue with a document viewer.** One screen: oldest-waiting item, the
+  document rendered beside the requirement it must satisfy, verify/reject with canned reasons
+  plus free text, then advance. `J`/`K` to move, `V` to verify. This is where staff hours
+  actually go.
+
+- **D4 · Global search and a command palette.** Staff jump to a student, application, school or
+  payment reference; students search their own documents. Nothing is currently findable except
+  by navigation.
+
+- **D5 · User-controlled appearance and locale.** An explicit light/dark/system toggle (today
+  the OS decides, full stop), a text-size control, and locale-aware money and dates. The fee is
+  hardcoded as "₦5,000" in the landing-page markup; formatting should run through `Intl`
+  against the `Africa/Lagos` timezone the backend already declares.
+
+- **D6 · Offline tolerance.** Detect connection loss, queue the upload, say plainly that it will
+  resume. On this audience's network conditions that converts a failure into a delay.
+
+---
+
+## Roadmap
+
+Four phases, sequenced by dependency rather than size. The order matters: the token and shell
+work in Phase 2 is what makes Phases 3 and 4 cheap, and doing it after building forty more
+screens costs several times more.
+
+Gates are written as observable tests so that "done" is not a matter of opinion.
+
+### Phase 1 — Stop the bleeding ✅ shipped
+
+> **Gate:** no dead link, no native dialog, no unanswerable form. **Met** — all 13 internal
+> links resolve, `npm run build` passes 19 routes, `tsc --noEmit` and `eslint` are clean.
+
+Pure defect work on the existing surface. Nothing here was new product.
+
+| Item | What shipped |
+|---|---|
+| **A1** | `/privacy`, `/terms`, `/refund-policy`, `/contact` under a shared `(legal)` layout; `/documents` document vault; branded `not-found.tsx` |
+| **A2** | `/forgot-password`, `/reset-password`, `/verify-email`; resend-verification wired into the dashboard notice |
+| **A3** | `window.alert` replaced with the same per-field `role="alert"` every other field type uses |
+| **A4** | Grouped choices render as `fieldset`/`legend` with per-option `id`s and wired `aria-describedby` |
+| **B3** | Error summary at the top of every form, focus moved to it on failed submit, all messages shown per field |
+| **B5** | `prefers-reduced-motion` respected before any programmatic scroll |
+| **B6** | Source Sans 3 + JetBrains Mono via `next/font`; dead `--font-geist-*` and duplicate theme vars removed |
+| **B7** | `error.tsx`, `global-error.tsx`, and `lib/report-error.ts` as the single Sentry-ready choke point |
+
+**B3 and B5 were pulled forward from Phase 2** — both live on the same lines of
+`FormRenderer.tsx` as A3 and A4, so splitting them across phases would have meant rewriting
+the same file twice.
+
+**Two things surfaced during the work that were not in the original audit:**
+
+1. **The "documents are stored encrypted" claim was not backed by configuration.** The landing
+   page footer and the privacy policy both state it. `EncryptedTextField` covers *payment
+   gateway credentials only*; documents go to S3 with a private ACL and 15-minute signed URLs,
+   but no server-side encryption was requested. Fixed by adding
+   `"object_parameters": {"ServerSideEncryption": "AES256"}` to the S3 `STORAGES` config — AWS
+   encrypts by default since 2023, but S3-compatible providers may not, and a published claim
+   should not rest on a provider default.
+
+2. **Browser-side Sentry still needs a dependency and a DSN.** `lib/report-error.ts` is the
+   single choke point every boundary reports through; wiring it is `npm install @sentry/nextjs`,
+   a `NEXT_PUBLIC_SENTRY_DSN`, and replacing one `console.error`.
+
+**The legal pages carried nine visible `Needs sign-off before launch` callouts. Seven are now
+resolved** (see below); the two that remain are genuine open decisions.
+
+### Phase 1b — Closing out the two flagged items ✅ shipped
+
+**1. The encryption claim is now backed and guarded.** Beyond the `ServerSideEncryption: AES256`
+setting, `backend/tests/test_storage_claims.py` asserts it — along with the private ACL, the
+15-minute URL expiry, no-overwrite, and that gateway credentials use `EncryptedTextField`. The
+claim now fails the build if someone removes the setting, rather than quietly becoming false.
+`backend/.env.example` documents both the encryption requirement and a **data-residency
+finding**: the default region is `eu-west-1` (Ireland), which the NDPR treats as an
+international transfer requiring disclosure and a lawful basis. Choose `af-south-1` or a
+Nigeria-resident provider to avoid the obligation.
+
+**2. Seven of nine sign-off callouts resolved**, using decisions the business supplied:
+
+| Clause | Resolution |
+|---|---|
+| Refund cooling-off | **Full refund within 14 days**, provided no document has been reviewed. Now stated on the landing page next to the fee, not just in the policy |
+| Retention schedule | Documents 24 months after close · payment records 7 years · inactive accounts 24 months with two warning emails · audit logs 7 years |
+| Company identity | RC 9759223, 19 Obashoro Street, Oke Odo, Alimosho, Lagos State |
+| Support contact | support@nasuru.com · +234 812 934 1700 (call and WhatsApp) · Mon–Sat, 8am–5pm WAT |
+| DPO contact | Routed to the support address with a required subject line — the NDPR wants a contact point, not a published personal name |
+| Security disclosure | Published address plus a good-faith safe-harbour statement |
+| Liability / governing law | **Drafted** under a visible `Draft — not yet reviewed by counsel` marker: Nigerian law, Lagos jurisdiction, liability capped at 12 months of fees, indirect loss excluded, non-excludable liabilities preserved, talk-to-us-first before court |
+
+Everything above lives in one file, `frontend/src/lib/company.ts`, rather than scattered across
+five pages, and the fee renders through `Intl.NumberFormat` instead of a hand-typed `₦5,000`.
+
+**What deliberately remains open — two callouts and six PENDING values:**
+
+- **Sub-processor disclosure.** Paystack, Flutterwave and Sentry are named because the codebase
+  integrates them. Hosting, object storage and the email/SMS provider are deployment choices
+  nobody has made, so they render as `PENDING`. Naming the wrong processor in a published
+  policy is worse than an incomplete list.
+- **Referral payout mechanics.** One rule was derivable and is now stated as policy: a reward
+  becomes withdrawable only once the payment that earned it is past its 14-day refund window,
+  since a reward cannot be paid on money that may still be returned. The minimum payout balance
+  and the treatment of unclaimed balances are still open.
+
+**These can no longer ship by accident.** `npm run check:launch` reports every remaining marker,
+and **fails the build** under `NODE_ENV=production`, `VERCEL_ENV=production`, or `--strict`. It
+is wired into `npm run verify`.
+
+### Phase 2 — Build the foundation everything else sits on ✅ shipped
+
+> **Gate:** axe reports zero violations on all routes; keyboard-only walkthrough passes.
+> **Met** — 78 Playwright tests pass on desktop and mobile, including 44 axe scans (11 public
+> routes × 2 colour schemes × 2 viewports) with zero violations. `npm run verify` is green.
+
+| Item | What shipped |
+|---|---|
+| **B2, B10** | 27 semantic tokens in three theme states; one global `:focus-visible` ring; `npm run check:contrast` verifies **54 required pairs** across both themes and fails the build on a regression |
+| **B1** | `AppShell` — skip link, banner, single `<main id="content">`, `aria-label`led navs, `aria-current` on the active item |
+| **B4** | `AnnouncerProvider` — always-mounted polite and assertive live regions, plus a toast surface; `Skeleton` / `LoadingRegion` / `CardListSkeleton` replace the `Loading…` text swap |
+| **B8** | `lib/upload.ts` — XHR progress, bounded retry with exponential backoff, cancellation, one token refresh mid-upload; checklist rows gained a progress bar, a cancel control and drag-and-drop |
+| **B9** | `eslint-plugin-jsx-a11y` at **error** level, Vitest + Testing Library (10 tests), Playwright + axe (78 tests), `npm run verify` chaining all of it |
+
+**How the token layer is enforced.** `scripts/check-contrast.mjs` parses `globals.css` rather
+than duplicating its values, so it cannot drift from what it checks. It grades pairs at three
+levels: `text` (4.5:1, WCAG 1.4.3), `ui` (3:1, WCAG 1.4.11 — input borders and the focus ring,
+where the border is the only thing identifying the control), and `decor` (reported, not
+enforced). That distinction matters: applying 3:1 to every decorative panel border would force
+a heavy, garish UI in the name of a rule that does not apply to it. It also asserts the
+`prefers-color-scheme` block and the `[data-theme="dark"]` block stay identical, so viewers on
+the default "system" setting never get a different palette from those who chose dark.
+
+**Three real defects the new tooling caught immediately:**
+
+1. **Input borders failed WCAG 1.4.11.** `border-slate-300` on white is ~1.5:1 against a
+   required 3:1 — every text input in the product. Fixed with a dedicated `--field-line` token
+   (3.38:1 light, 3.75:1 dark) kept separate from the decorative `--line`.
+2. **`jsx-a11y` failed the build on my own Phase 1 code** — `autoFocus` on the two new password
+   screens. Removed rather than suppressed: autofocus skips the heading and explanatory text
+   that give the field its context.
+3. **The error summary was indistinguishable from field errors.** Both are `role="alert"`, so
+   the summary had no accessible name. Fixed with `aria-labelledby` pointing at its own heading.
+
+**Also cleaned up on the way through:** all 21 files carrying hand-written `dark:` variants
+migrated to tokens (**zero `dark:` variants remain in `src/`**); nested `<main>` elements
+removed from seven `(app)` routes now that the shell provides the landmark; the dashboard's
+duplicate hand-rolled nav deleted; `@types/node` bumped from 20 to 22 (Vitest 5 and Vite 8 both
+require it); Prettier added and the source formatted consistently.
+
+**One caveat on e2e coverage.** The axe suite covers the 11 routes reachable without a backend.
+Signed-in routes — dashboard, checklist, documents, referrals, checkout — are not yet scanned,
+because there is no seeded test API to authenticate against. Their shared machinery (the form
+engine, the shell, the upload flow) is covered by unit tests, but **the gate is weaker there
+than it looks**. Standing up a seeded fixture API is the honest next step, and belongs with the
+Phase 3 staff console work.
+
+### Phase 3 — Give the agency a workspace 🟡 core shipped, three items outstanding
+
+> **Gate:** a reviewer completes a full day without opening Django admin.
+> **Not yet met** — document review, student lookup and search are covered, but payments,
+> messaging and audit still send staff to Django admin. See "What is still missing" below.
+
+Every endpoint this needed already existed. The gap was entirely the absence of a client.
+
+| Item | What shipped |
+|---|---|
+| **Staff shell** | `/staff` route group with its own skip link, banner, single `<main>`, labelled navs and a role guard. Deliberately separate from the student `AppShell` — they share no navigation |
+| **D3 · Review queue** | `/staff/review` — the document rendered beside the requirement it must satisfy, inline for images and PDFs; verify / reject / waive; **7 canned rejection reasons**, editable before sending; `J`/`K` to move, `V` to verify, `R` to reject; the decided item drops out and the next slides under the cursor, so the reviewer never loses their place |
+| **D4 · Command palette** | `Ctrl`/`Cmd`+`K` across students and the queue, debounced and server-side. A real `combobox` + `aria-activedescendant`: arrows move the highlight while DOM focus stays in the input |
+| **Student directory** | `/staff/students` — server-side search over name, email and phone, as a real `<table>` with scoped headers |
+| **Student record** | `/staff/students/[id]` — contact, profile, access and email-verification state on one page instead of six changelists |
+
+**Rejection reasons are the quiet win here.** A student told *"the photo is blurred, we cannot
+read the expiry date"* can act on it; one told *"rejected"* opens a support ticket. Canned
+reasons make that the default rather than something a reviewer has to type forty times a day.
+
+**Three React and accessibility defects the linters caught during this work**, all of them mine:
+a `setState` nested inside another state updater in the queue's `move()`; a variable reassigned
+during render in the palette's group headers; and stale results rendering for a search term too
+short to have run. The last was a real bug, not a lint nit.
+
+**What is still missing — the gate is not met until these land:**
+
+- **Payments and reconciliation.** `/api/admin/payments/`, `webhook-events/` and
+  `reconciliation/` have no client, so finance still works in Django admin.
+- **Messaging UI.** `MessageThread` and `Message` are built and the landing page promises "a
+  counsellor you can message inside the platform". Still no surface. This is a promised feature
+  with no implementation, and should outrank the two above.
+- **Bulk actions, saved views, CSV export, and a staff-facing audit-log viewer** over the
+  existing `record()` trail.
+- **Per-student applications and payment timeline.** The student record says so on the page
+  rather than faking a panel: the admin API does not expose those scoped to a single student, so
+  it needs an endpoint before it needs a UI.
+### Phase 3b — The seeded fixture API ✅ shipped
+
+> **Gate:** every authenticated route scanned by axe in both themes and both viewports.
+> **Met** — the suite is now **152 tests**, up from 78. Coverage went from public routes only
+> to the whole product.
+
+Roughly half the product had never been scanned: the dashboard, checklist, document vault,
+checkout, referrals, intake form and the entire staff console. The public suite was green while
+the pages staff use every day were untested.
+
+**How it works.** `e2e/fixtures/` serves a seeded API through Playwright's `page.route()`, and
+seeds a session into `localStorage` before any script runs. Three personas — `studentPage`,
+`unpaidPage`, `staffPage` — cover the paid, unpaid and staff states.
+
+**Why not run the real backend?** What these tests assert is how the *rendered UI* behaves —
+axe violations, landmark structure, keyboard flow. For that, a real Postgres, Redis and
+migration step buy nothing but a slower, flakier CI. The API contract already has the backend's
+own 87 tests.
+
+**The one risk that trade carries is drift**, and it is guarded rather than hoped away:
+
+- `FIELD_CONTRACT` in `e2e/fixtures/data.ts` lists every field the fixtures mock, per
+  serializer. `backend/tests/test_frontend_contract.py` evaluates it and asserts each field
+  exists on the real serializer. Rename a serializer field and the backend suite fails.
+- An unmapped route returns **404 with a message naming the missing handler**, never a silent
+  200 — and a test asserts that, so the fixture cannot start lying about what the product does.
+- Fixtures are deliberately mid-flow: a rejected document, an expired one, an unverified email,
+  a part-complete checklist, an application with no checklist yet. A pristine happy path
+  exercises none of the states that actually break.
+
+**Four real defects it found on its first run**, none of which any existing test could have
+caught:
+
+| Defect | Severity |
+|---|---|
+| **Every form input was unreadable in dark mode.** `FormRenderer` had a hardcoded `bg-white` in its local `inputClass`; against near-white `text-ink` that is **1.09:1**. The token migration missed it because `bg-white` is not one of the slate classes it rewrote | Serious — the intake form was unusable |
+| **The command palette's listbox was structurally invalid.** I had wrapped each `role="option"` in an `<li>`, breaking the required listbox→option relationship. axe reported `aria-required-children` and `aria-required-parent` as **critical**; a screen reader would announce results as list items, not selectable options. Fixed to `listbox` → `group` → `option` | Critical |
+| **Wide tables were keyboard-inaccessible on mobile.** `overflow-x-auto` with no `tabIndex` — `scrollable-region-focusable`. A phone user navigating by keyboard could not reach the off-screen columns at all. Fixed with a `ScrollableX` primitive | Serious |
+| **`ChecklistItem.document_id` did not exist.** The frontend type declared a field the API has never sent — `ChecklistItemSerializer` returns a nested `document`. Nothing read it, so it was harmless, but it was a false statement about the contract. Caught by the drift guard on its first run | Contract lie |
+
+The dark-mode input bug is the one worth dwelling on: it shipped through Phase 2's contrast
+checker, because that verifies *tokens*, not whether a component uses them. Only rendering the
+page and measuring it caught it.
+
+### Phase 4 — Pass the questionnaire
+
+> **Gate:** a partner institution's security and data-protection review clears without
+> exceptions.
+
+Everything a buyer or regulator asks for that the product cannot currently answer yes to.
+
+- **MFA** (TOTP + recovery codes), mandatory for all staff roles
+- **SSO** — OIDC first, SAML if a partner demands it; SCIM deprovisioning
+- **Session management** — device list, remote revoke, sign out everywhere
+- **Notification preference centre** — per-channel, per-category, unsubscribe, quiet hours
+- **NDPR data rights** — self-service export, deletion request workflow, retention schedule,
+  soft-delete across the models
+- **Throttling** extended past the four scoped endpoints; a published accessibility statement

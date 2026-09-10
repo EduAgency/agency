@@ -170,6 +170,13 @@ if env("USE_S3"):
             "querystring_auth": True,
             "querystring_expire": 900,  # signed URLs expire in 15 minutes
             "file_overwrite": False,
+            # Encryption at rest is stated publicly on the landing page and in
+            # the privacy policy, so it is requested explicitly rather than
+            # left to the bucket's default — a bucket created without a
+            # default encryption policy, or a non-AWS S3-compatible provider,
+            # would otherwise store passports and transcripts in the clear and
+            # make a published claim untrue.
+            "object_parameters": {"ServerSideEncryption": "AES256"},
         },
     }
 
