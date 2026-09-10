@@ -18,6 +18,37 @@ User = get_user_model()
 
 
 @pytest.fixture(autouse=True)
+def isolated_cache(settings):
+    """Give each test its own throttle counters.
+
+    DRF throttling counts against the default cache. Sharing the dev Redis means
+    one test's signups exhaust the 5/hour limit for every later test — and
+    leaves that state behind for the next run.
+    """
+    from django.core.cache import cache
+
+    settings.CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "test-cache",
+        }
+    }
+    cache.clear()
+    yield
+    cache.clear()
+
+
+@pytest.fixture
+def no_throttling(settings):
+    """For tests about something other than rate limiting."""
+    settings.REST_FRAMEWORK = {
+        **settings.REST_FRAMEWORK,
+        "DEFAULT_THROTTLE_RATES": {k: None for k in settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]},
+    }
+    return settings
+
+
+@pytest.fixture(autouse=True)
 def isolated_media(settings, tmp_path):
     """Keep uploaded test files out of the repo's media directory.
 

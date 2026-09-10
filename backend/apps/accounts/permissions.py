@@ -4,6 +4,7 @@ Every rule here is enforced server-side. Hiding a button in the Next.js UI is a
 usability choice, never a security boundary (plan §3.4).
 """
 
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 from .models import User
@@ -32,12 +33,13 @@ class IsAgencyStaff(BasePermission):
 class HasPlatformAccess(BasePermission):
     """Gate the paid area of the student dashboard.
 
-    Reads the flag set by the payment webhook — see plan §5.2. A student mid-payment
-    gets 403 with a machine-readable code the frontend renders as 'processing'.
+    Reads the flag set by the payment webhook — see plan §5.2. The response
+    carries ``code: "access_fee_required"`` so the frontend can send the student
+    to checkout instead of showing a bare "forbidden"; DRF only puts that code
+    in the body via apps.core.exceptions.exception_handler.
     """
 
-    message = "Your platform access is not active yet."
-    code = "access_fee_required"
+    message = ErrorDetail("Your platform access is not active yet.", code="access_fee_required")
 
     def has_permission(self, request, view):
         user = request.user

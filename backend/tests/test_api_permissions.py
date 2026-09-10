@@ -18,6 +18,17 @@ class TestAccessFeeGate:
         response = as_student.get("/api/applications/")
         assert response.status_code == 403
 
+    def test_the_paywall_403_is_distinguishable_from_a_plain_forbidden(self, as_student):
+        """The frontend routes to checkout on this code, so it has to be in the body."""
+        body = as_student.get("/api/applications/").json()
+        assert body["code"] == "access_fee_required"
+
+    def test_field_errors_keep_their_shape(self, api):
+        """The error handler must not flatten per-field payloads the form renderer needs."""
+        body = api.post("/api/auth/signup/", {"email": "not-an-email"}, format="json").json()
+        assert "email" in body and isinstance(body["email"], list)
+        assert "detail" not in body
+
     def test_a_paid_student_can(self, as_paid_student):
         assert as_paid_student.get("/api/applications/").status_code == 200
 
@@ -235,3 +246,32 @@ class TestReviewFlow:
         as_reviewer.post(f"/api/checklist-items/{item.pk}/review/", {"status": "verified"}, format="json")
         item.checklist.refresh_from_db()
         assert item.checklist.percent_complete == 50  # one of two required items
+
+
+@pytest.mark.django_db
+class TestRateLimiting:
+    """A public signup form with no protection gets scraped and spammed (plan §10)."""
+
+    def _signup(self, api, n: int):
+        return api.post(
+            "/api/auth/signup/",
+            {
+                "email": f"burst{n}@example.com",
+                "password": "a-strong-passphrase-42",
+                "first_name": "Burst",
+                "last_name": "Test",
+                "accept_terms": True,
+            },
+            format="json",
+        )
+
+    def test_signup_is_rate_limited(self, api):
+        codes = [self._signup(api, n).status_code for n in range(7)]
+        assert codes[:5] == [201] * 5
+        assert 429 in codes[5:]
+
+    def test_password_reset_does_not_confirm_whether_an_account_exists(self, api, student):
+        known = api.post("/api/auth/password/reset/", {"email": student.user.email}, format="json")
+        unknown = api.post("/api/auth/password/reset/", {"email": "nobody@example.com"}, format="json")
+        assert known.status_code == unknown.status_code == 200
+        assert known.json() == unknown.json()
