@@ -1,7 +1,7 @@
 "use client";
 
 import { authFetch } from "@/lib/auth/client";
-import type { Application, Checklist, ChecklistItem } from "@/types";
+import type { Application, Checklist, ChecklistItem, StudentDocument } from "@/types";
 
 interface Paginated<T> {
   count: number;
@@ -37,8 +37,23 @@ export function uploadDocument(itemId: string, file: File, title?: string) {
   });
 }
 
+/**
+ * The document vault — every document the student has uploaded, across all
+ * applications. The API has supported this since the API layer landed; the
+ * dashboard linked to `/documents` and the page did not exist
+ * (docs/enterprise-readiness.md §A1).
+ */
+export function listDocuments() {
+  return authFetch<Paginated<StudentDocument>>("/api/documents/");
+}
+
 export function listSchools() {
-  return authFetch<Paginated<{ id: string; name: string; country_name: string | null; programmes: { id: string; name: string; intakes: string[] }[] }>>(
-    "/api/schools/",
-  );
+  return authFetch<
+    Paginated<{
+      id: string;
+      name: string;
+      country_name: string | null;
+      programmes: { id: string; name: string; intakes: string[] }[];
+    }>
+  >("/api/schools/");
 }

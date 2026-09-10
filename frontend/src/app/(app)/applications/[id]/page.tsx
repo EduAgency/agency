@@ -58,20 +58,22 @@ export default function ApplicationPage() {
       .catch(() => undefined);
   }, [id]);
 
-  if (loading || !ready) return <main className="p-12 text-sm text-slate-500">Loading…</main>;
+  if (loading || !ready) return <div className="p-12 text-sm text-subtle">Loading…</div>;
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
+    <div className="mx-auto max-w-3xl px-6 py-12">
       <BackLink href="/dashboard">Back to my applications</BackLink>
 
-      {error && <div className="mt-6"><Alert>{error}</Alert></div>}
+      {error && (
+        <div className="mt-6">
+          <Alert>{error}</Alert>
+        </div>
+      )}
 
       {application && (
         <header className="mt-4">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
-            {application.school.name}
-          </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          <h1 className="text-2xl font-semibold text-ink">{application.school.name}</h1>
+          <p className="mt-1 text-sm text-muted">
             {application.programme?.name}
             {application.intake && ` · ${application.intake}`} · {application.status_display}
           </p>
@@ -89,6 +91,6 @@ export default function ApplicationPage() {
           )
         )}
       </div>
-    </main>
+    </div>
   );
 }

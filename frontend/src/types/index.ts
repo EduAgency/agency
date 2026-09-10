@@ -23,10 +23,56 @@ export interface ChecklistItem {
   accepted_file_types: string[];
   max_file_size_mb: number;
   status: ChecklistItemStatus;
+  /** Server-rendered label for `status`, from Django's `get_status_display`. */
+  status_display: string;
   /** Always present when status is "rejected" — the backend refuses a rejection without one. */
   rejection_reason: string;
   due_date: string | null;
-  document_id: string | null;
+  /**
+   * The nested vault document, when one has been uploaded.
+   *
+   * This used to be declared as `document_id: string | null`, which the API has
+   * never sent — `ChecklistItemSerializer` returns the nested document. Nothing
+   * read it, so it was harmless, but it was a lie about the contract. Caught by
+   * the fixture drift guard (backend/tests/test_frontend_contract.py).
+   */
+  document: StudentDocument | null;
+  updated_at: string;
+}
+
+/** One uploaded version of a document. A document keeps its whole history. */
+export interface DocumentUpload {
+  id: string;
+  version: number;
+  original_filename: string;
+  content_type: string;
+  size_bytes: number;
+  status: ChecklistItemStatus;
+  rejection_reason: string;
+  reviewed_at: string | null;
+  created_at: string;
+  /** Signed and short-lived — never a permanent public link to a passport. */
+  download_url: string | null;
+}
+
+/**
+ * An entry in the student's document vault.
+ *
+ * `shareable_key` is what makes a document reusable: one passport upload
+ * satisfies the passport requirement on every application at once.
+ */
+export interface StudentDocument {
+  id: string;
+  title: string;
+  shareable_key: string;
+  category: string;
+  issued_on: string | null;
+  expires_on: string | null;
+  review_status: ChecklistItemStatus;
+  is_expired: boolean;
+  current: DocumentUpload | null;
+  uploads: DocumentUpload[];
+  created_at: string;
   updated_at: string;
 }
 
@@ -61,7 +107,10 @@ export interface Application {
   status: string;
   status_display: string;
   target_submission_date: string | null;
-  checklist: Pick<Checklist, "percent_complete" | "percent_uploaded" | "required_count" | "verified_count"> | null;
+  checklist: Pick<
+    Checklist,
+    "percent_complete" | "percent_uploaded" | "required_count" | "verified_count"
+  > | null;
 }
 
 export interface StudentProfile {

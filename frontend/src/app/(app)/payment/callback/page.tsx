@@ -58,40 +58,38 @@ function Callback() {
 
   if (status === "successful") {
     return (
-      <main className="mx-auto max-w-md px-6 py-20 text-center">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Payment confirmed</h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+      <div className="mx-auto max-w-md px-6 py-20 text-center">
+        <h1 className="text-2xl font-semibold text-ink">Payment confirmed</h1>
+        <p className="mt-2 text-sm text-muted">
           Your dashboard is unlocked. Let&apos;s get your checklist started.
         </p>
         <Link href="/dashboard" className="mt-8 inline-block">
           <Button>Go to my dashboard</Button>
         </Link>
-      </main>
+      </div>
     );
   }
 
   if (status === "failed" || status === "abandoned") {
     return (
-      <main className="mx-auto max-w-md px-6 py-20 text-center">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
-          That payment didn&apos;t go through
-        </h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+      <div className="mx-auto max-w-md px-6 py-20 text-center">
+        <h1 className="text-2xl font-semibold text-ink">That payment didn&apos;t go through</h1>
+        <p className="mt-2 text-sm text-muted">
           Nothing has been charged. You can try again with the same or a different method.
         </p>
         <Link href="/checkout" className="mt-8 inline-block">
           <Button>Try again</Button>
         </Link>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-20 text-center">
-      <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Confirming your payment</h1>
-      {/* Deliberately not "Paid". Nothing is confirmed until the gateway's
+    <div className="mx-auto max-w-md px-6 py-20 text-center">
+      <h1 className="text-2xl font-semibold text-ink">Confirming your payment</h1>
+      {/* Deliberately not"Paid". Nothing is confirmed until the gateway's
           webhook says so, and telling a student otherwise is how disputes start. */}
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mt-2 text-sm text-muted">
         We&apos;re waiting for your bank and payment provider to confirm. This usually takes a few
         seconds, and it&apos;s safe to leave this page — we&apos;ll email you the moment it clears.
       </p>
@@ -103,24 +101,20 @@ function Callback() {
           </Alert>
         </div>
       )}
-      {reference && (
-        <p className="mt-6 font-mono text-xs text-slate-500 dark:text-slate-400">
-          Reference: {reference}
-        </p>
-      )}
+      {reference && <p className="mt-6 font-mono text-xs text-subtle">Reference: {reference}</p>}
       <Link
         href="/dashboard"
-        className="mt-8 inline-block text-sm text-slate-600 underline underline-offset-4 dark:text-slate-400"
+        className="mt-8 inline-block text-sm text-muted underline underline-offset-4"
       >
         Go to my dashboard
       </Link>
-    </main>
+    </div>
   );
 }
 
 export default function PaymentCallbackPage() {
   return (
-    <Suspense fallback={<main className="p-12 text-sm text-slate-500">Loading…</main>}>
+    <Suspense fallback={<div className="p-12 text-sm text-subtle">Loading…</div>}>
       <Callback />
     </Suspense>
   );

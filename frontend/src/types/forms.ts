@@ -36,17 +36,7 @@ export const MULTI_VALUE_TYPES: FieldType[] = ["multiselect", "checkbox_group", 
 export const BOOLEAN_TYPES: FieldType[] = ["checkbox", "consent"];
 
 export type ConditionOp =
-  | "eq"
-  | "neq"
-  | "in"
-  | "not_in"
-  | "gt"
-  | "gte"
-  | "lt"
-  | "lte"
-  | "contains"
-  | "is_set"
-  | "is_empty";
+  "eq" | "neq" | "in" | "not_in" | "gt" | "gte" | "lt" | "lte" | "contains" | "is_set" | "is_empty";
 
 export interface Condition {
   field: string;

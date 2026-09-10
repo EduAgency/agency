@@ -35,10 +35,8 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-      <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Sign in</h1>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Continue with your applications.
-      </p>
+      <h1 className="text-2xl font-semibold text-ink">Sign in</h1>
+      <p className="mt-1 text-sm text-muted">Continue with your applications.</p>
 
       <form onSubmit={submit} className="mt-8 space-y-5">
         {error && <Alert>{error}</Alert>}
@@ -72,7 +70,7 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <div className="mt-6 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+      <div className="mt-6 space-y-2 text-sm text-muted">
         <p>
           <Link href="/forgot-password" className="underline underline-offset-2">
             Forgotten your password?

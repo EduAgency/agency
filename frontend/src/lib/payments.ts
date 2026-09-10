@@ -7,7 +7,11 @@ export function listGateways(currency = "NGN") {
   return authFetch<GatewayOption[]>(`/api/payments/gateways/?currency=${currency}`);
 }
 
-export function initiatePayment(input: { gateway?: string; purpose?: string; callback_url?: string }) {
+export function initiatePayment(input: {
+  gateway?: string;
+  purpose?: string;
+  callback_url?: string;
+}) {
   return authFetch<{ payment: Payment; checkout_url: string }>("/api/payments/initiate/", {
     method: "POST",
     body: input,

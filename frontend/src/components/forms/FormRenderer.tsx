@@ -6,9 +6,22 @@
  * There is no per-form React component anywhere in this app — that is the whole
  * point of the form engine (plan §3.1). A new form built in the admin appears
  * here with no frontend change.
+ *
+ * Accessibility contract this file upholds, since every form in the product is
+ * rendered through it (docs/enterprise-readiness.md §A3, §A4, §B3, §B5):
+ *
+ *   - Grouped choices (radio / multiselect / checkbox_group) are a `fieldset`
+ *     with a `legend`, so the question is announced with each option. A plain
+ *     `label` cannot name a group of controls.
+ *   - Every message reaches the same place: a per-field `role="alert"`. There
+ *     is no path — file validation included — that reports a problem anywhere
+ *     an assistive technology cannot follow.
+ *   - A failed submit moves focus to a summary listing every failure. Scrolling
+ *     alone strands a keyboard or screen reader user on the submit button.
+ *   - Motion is conditional on `prefers-reduced-motion`.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   DISPLAY_ONLY_TYPES,
   type FieldErrors,
@@ -18,6 +31,23 @@ import {
 } from "@/types";
 import { isVisible, pruneHidden } from "@/lib/forms/conditions";
 import { allFields, checkFile, validateField, validateForm } from "@/lib/forms/validate";
+
+/** Choice fields whose options must be wrapped in a fieldset to be announced. */
+const GROUPED_TYPES = ["radio", "multiselect", "checkbox_group"];
+
+function motionOk(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** Focus the first control of a field and bring it into view. */
+function focusField(key: string) {
+  const container = document.querySelector<HTMLElement>(`[data-field="${key}"]`);
+  if (!container) return;
+  const control = container.querySelector<HTMLElement>("input, select, textarea");
+  (control ?? container).focus({ preventScroll: true });
+  container.scrollIntoView({ behavior: motionOk() ? "smooth" : "auto", block: "center" });
+}
 
 interface Props {
   schema: FormSchema;
@@ -41,8 +71,14 @@ export function FormRenderer({
   const [values, setValues] = useState<FormValues>(initialValues);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [summaryKeys, setSummaryKeys] = useState<string[]>([]);
+  const summaryRef = useRef<HTMLDivElement>(null);
 
   const fields = useMemo(() => allFields(schema), [schema]);
+  const labelFor = useMemo(
+    () => new Map(fields.map((field) => [field.key, field.label])),
+    [fields],
+  );
 
   const setValue = useCallback((key: string, value: unknown) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -57,27 +93,77 @@ export function FormRenderer({
     [values],
   );
 
+  /**
+   * A rejected file is a validation error like any other, not an interruption.
+   * It used to be a `window.alert`, which is unstyleable, untranslatable, and
+   * gone before a screen reader can tie it to the control that caused it.
+   */
+  const reportFileProblem = useCallback((key: string, problem: string | null) => {
+    setTouched((prev) => ({ ...prev, [key]: true }));
+    setErrors((prev) => ({ ...prev, [key]: problem ? [problem] : [] }));
+  }, []);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const found = validateForm(schema, values);
     setErrors(found);
     setTouched(Object.fromEntries(fields.map((f) => [f.key, true])));
-    if (Object.keys(found).length > 0) {
-      const first = document.querySelector<HTMLElement>(`[data-field="${Object.keys(found)[0]}"]`);
-      first?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    const failed = Object.keys(found);
+    setSummaryKeys(failed);
+
+    if (failed.length > 0) {
+      // Focus, not just scroll — otherwise the keyboard user is still on the
+      // submit button and hears nothing about why it did not work.
+      requestAnimationFrame(() => summaryRef.current?.focus());
       return;
     }
     // Hidden answers are dropped before sending, exactly as the server does.
     await onSubmit(pruneHidden(fields, values));
   };
 
-  const errorsFor = (key: string): string[] => {
-    const local = touched[key] ? (errors[key] ?? []) : [];
-    return [...local, ...(serverErrors[key] ?? [])];
-  };
+  const errorsFor = useCallback(
+    (key: string): string[] => {
+      const local = touched[key] ? (errors[key] ?? []) : [];
+      return [...local, ...(serverErrors[key] ?? [])];
+    },
+    [touched, errors, serverErrors],
+  );
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-10">
+      {summaryKeys.length > 0 && (
+        <div
+          ref={summaryRef}
+          tabIndex={-1}
+          role="alert"
+          /* Named by its own heading. Per-field errors are alerts too, so
+             without a name this region is indistinguishable from them — to a
+             screen reader user moving by landmark, and to a test. */
+          aria-labelledby="form-error-summary-heading"
+          className="rounded-lg border border-danger-line bg-danger-bg p-4"
+        >
+          <h2 id="form-error-summary-heading" className="text-sm font-semibold text-danger">
+            {summaryKeys.length === 1
+              ? "There is one answer to fix before you can continue"
+              : `There are ${summaryKeys.length} answers to fix before you can continue`}
+          </h2>
+          <ul className="mt-2 space-y-1">
+            {summaryKeys.map((key) => (
+              <li key={key}>
+                <button
+                  type="button"
+                  onClick={() => focusField(key)}
+                  className="text-left text-sm text-danger underline underline-offset-2 hover:opacity-80"
+                >
+                  {labelFor.get(key) ?? key}: {(errors[key] ?? [])[0]}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {schema.sections.map((section) => {
         const visibleFields = section.fields.filter(
           (field) => DISPLAY_ONLY_TYPES.includes(field.type) || isVisible(field, values),
@@ -87,13 +173,9 @@ export function FormRenderer({
         return (
           <section key={section.key} className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {section.title}
-              </h2>
+              <h2 className="text-lg font-semibold text-ink">{section.title}</h2>
               {section.description && (
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                  {section.description}
-                </p>
+                <p className="mt-1 text-sm text-muted">{section.description}</p>
               )}
             </div>
 
@@ -106,6 +188,7 @@ export function FormRenderer({
                   errors={errorsFor(field.key)}
                   onChange={(value) => setValue(field.key, value)}
                   onBlur={() => blur(field)}
+                  onFileProblem={(problem) => reportFileProblem(field.key, problem)}
                 />
               ))}
             </div>
@@ -113,11 +196,11 @@ export function FormRenderer({
         );
       })}
 
-      <div className="flex flex-wrap gap-3 border-t border-slate-200 pt-6 dark:border-slate-800">
+      <div className="flex flex-wrap gap-3 border-t border-line pt-6">
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
         >
           {submitting ? "Saving…" : submitLabel}
         </button>
@@ -126,7 +209,7 @@ export function FormRenderer({
             type="button"
             onClick={() => onSaveDraft(values)}
             disabled={submitting}
-            className="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="rounded-lg border border-field-line px-5 py-2.5 text-sm font-medium text-muted transition hover:bg-sunken disabled:opacity-50"
           >
             Save and finish later
           </button>
@@ -142,31 +225,94 @@ interface FieldProps {
   errors: string[];
   onChange: (value: unknown) => void;
   onBlur: () => void;
+  onFileProblem: (problem: string | null) => void;
 }
 
+/**
+ * `bg-surface`, never `bg-white`.
+ *
+ * This was `bg-white` until the seeded e2e suite scanned the intake form in
+ * dark mode: near-white `text-ink` on a hardcoded white ground is 1.09:1, so
+ * every input on every admin-built form was unreadable. The token migration
+ * missed it because `bg-white` is not one of the slate classes it rewrote.
+ */
 const inputClass =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:ring-1 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-400 dark:focus:ring-slate-400";
+  "w-full rounded-lg border border-field-line bg-surface px-3 py-2 text-sm text-ink transition placeholder:text-subtle hover:border-line-strong";
 
-function Field({ field, value, errors, onChange, onBlur }: FieldProps) {
+function Field({ field, value, errors, onChange, onBlur, onFileProblem }: FieldProps) {
   const hasError = errors.length > 0;
-  const describedBy = hasError ? `${field.key}-error` : field.help_text ? `${field.key}-help` : undefined;
+  const errorId = `${field.key}-error`;
+  const helpId = `${field.key}-help`;
+  const describedBy =
+    [field.help_text ? helpId : null, hasError ? errorId : null].filter(Boolean).join("") ||
+    undefined;
 
   if (field.type === "heading") {
-    return <h3 className="pt-2 text-base font-semibold text-slate-900 dark:text-slate-100">{field.label}</h3>;
+    return <h3 className="pt-2 text-base font-semibold text-ink">{field.label}</h3>;
   }
   if (field.type === "paragraph") {
-    return <p className="text-sm text-slate-600 dark:text-slate-400">{field.label}</p>;
+    return <p className="text-sm text-muted">{field.label}</p>;
   }
   if (field.type === "divider") {
-    return <hr className="border-slate-200 dark:border-slate-800" />;
+    return <hr className="border-line" />;
+  }
+
+  /* Help text and errors are rendered identically for every field type — only
+     the element that names the control changes. */
+  const messages = (
+    <>
+      {field.help_text && (
+        <p id={helpId} className="text-xs text-subtle">
+          {field.help_text}
+        </p>
+      )}
+      {hasError && (
+        <div id={errorId} role="alert" className="space-y-0.5">
+          {errors.map((message) => (
+            <p key={message} className="text-xs text-danger">
+              {message}
+            </p>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  const requiredMark = field.required && (
+    <>
+      <span aria-hidden="true" className="ml-0.5 text-danger">
+        *
+      </span>
+      <span className="sr-only"> (required)</span>
+    </>
+  );
+
+  // A group of controls is named by a legend. A `label` can only name one
+  // control, so using it here left the question unannounced entirely.
+  if (GROUPED_TYPES.includes(field.type)) {
+    return (
+      <fieldset
+        data-field={field.key}
+        aria-describedby={describedBy}
+        aria-invalid={hasError || undefined}
+        className="space-y-1.5 border-0 p-0"
+      >
+        <legend className="mb-1.5 block text-sm font-medium text-ink">
+          {field.label}
+          {requiredMark}
+        </legend>
+        <GroupedInput field={field} value={value} onChange={onChange} onBlur={onBlur} />
+        {messages}
+      </fieldset>
+    );
   }
 
   return (
     <div data-field={field.key} className="space-y-1.5">
       {field.type !== "checkbox" && field.type !== "consent" && (
-        <label htmlFor={field.key} className="block text-sm font-medium text-slate-800 dark:text-slate-200">
+        <label htmlFor={field.key} className="block text-sm font-medium text-ink">
           {field.label}
-          {field.required && <span className="ml-0.5 text-rose-600">*</span>}
+          {requiredMark}
         </label>
       )}
 
@@ -175,20 +321,81 @@ function Field({ field, value, errors, onChange, onBlur }: FieldProps) {
         value={value}
         onChange={onChange}
         onBlur={onBlur}
+        onFileProblem={onFileProblem}
         describedBy={describedBy}
         invalid={hasError}
       />
 
-      {field.help_text && !hasError && (
-        <p id={`${field.key}-help`} className="text-xs text-slate-500 dark:text-slate-400">
-          {field.help_text}
-        </p>
-      )}
-      {hasError && (
-        <p id={`${field.key}-error`} role="alert" className="text-xs text-rose-600 dark:text-rose-400">
-          {errors[0]}
-        </p>
-      )}
+      {messages}
+    </div>
+  );
+}
+
+/** Radio / multiselect / checkbox groups. Always inside a fieldset. */
+function GroupedInput({
+  field,
+  value,
+  onChange,
+  onBlur,
+}: Pick<FieldProps, "field" | "value" | "onChange" | "onBlur">) {
+  const options = field.options ?? [];
+
+  if (field.type === "radio") {
+    return (
+      <div className="space-y-2">
+        {options.map((option, index) => {
+          const id = `${field.key}-opt-${index}`;
+          return (
+            <div key={option.value} className="flex items-center gap-2">
+              <input
+                id={id}
+                type="radio"
+                name={field.key}
+                value={option.value}
+                checked={value === option.value}
+                onChange={() => onChange(option.value)}
+                onBlur={onBlur}
+                className="h-4 w-4 border-field-line"
+              />
+              <label htmlFor={id} className="text-sm text-muted">
+                {option.label}
+              </label>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const selected = Array.isArray(value) ? (value as string[]) : [];
+  return (
+    <div className="space-y-2">
+      {options.map((option, index) => {
+        const id = `${field.key}-opt-${index}`;
+        return (
+          <div key={option.value} className="flex items-center gap-2">
+            <input
+              id={id}
+              type="checkbox"
+              name={field.key}
+              value={option.value}
+              checked={selected.includes(option.value)}
+              onChange={(e) =>
+                onChange(
+                  e.target.checked
+                    ? [...selected, option.value]
+                    : selected.filter((v) => v !== option.value),
+                )
+              }
+              onBlur={onBlur}
+              className="h-4 w-4 rounded border-field-line"
+            />
+            <label htmlFor={id} className="text-sm text-muted">
+              {option.label}
+            </label>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -198,6 +405,7 @@ function FieldInput({
   value,
   onChange,
   onBlur,
+  onFileProblem,
   describedBy,
   invalid,
 }: Omit<FieldProps, "errors"> & { describedBy?: string; invalid: boolean }) {
@@ -207,7 +415,8 @@ function FieldInput({
     onBlur,
     "aria-describedby": describedBy,
     "aria-invalid": invalid || undefined,
-    className: `${inputClass}${invalid ? " border-rose-500 focus:border-rose-500 focus:ring-rose-500" : ""}`,
+    "aria-required": field.required || undefined,
+    className: `${inputClass}${invalid ? " border-danger" : ""}`,
   };
 
   switch (field.type) {
@@ -224,7 +433,11 @@ function FieldInput({
 
     case "select":
       return (
-        <select {...common} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)}>
+        <select
+          {...common}
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+        >
           <option value="">Select…</option>
           {(field.options ?? []).map((option) => (
             <option key={option.value} value={option.value}>
@@ -234,71 +447,34 @@ function FieldInput({
         </select>
       );
 
-    case "multiselect":
-    case "checkbox_group": {
-      const selected = Array.isArray(value) ? (value as string[]) : [];
-      return (
-        <div className="space-y-2">
-          {(field.options ?? []).map((option) => (
-            <label key={option.value} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-              <input
-                type="checkbox"
-                checked={selected.includes(option.value)}
-                onChange={(e) =>
-                  onChange(
-                    e.target.checked
-                      ? [...selected, option.value]
-                      : selected.filter((v) => v !== option.value),
-                  )
-                }
-                onBlur={onBlur}
-                className="h-4 w-4 rounded border-slate-300 dark:border-slate-600"
-              />
-              {option.label}
-            </label>
-          ))}
-        </div>
-      );
-    }
-
-    case "radio":
-      return (
-        <div className="space-y-2">
-          {(field.options ?? []).map((option) => (
-            <label key={option.value} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-              <input
-                type="radio"
-                name={field.key}
-                value={option.value}
-                checked={value === option.value}
-                onChange={() => onChange(option.value)}
-                onBlur={onBlur}
-                className="h-4 w-4 border-slate-300 dark:border-slate-600"
-              />
-              {option.label}
-            </label>
-          ))}
-        </div>
-      );
-
     case "checkbox":
     case "consent":
       return (
-        <label className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
+        <div className="flex items-start gap-2.5">
           <input
             type="checkbox"
             id={field.key}
+            name={field.key}
             checked={value === true}
             onChange={(e) => onChange(e.target.checked)}
             onBlur={onBlur}
             aria-describedby={describedBy}
-            className="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-600"
+            aria-invalid={invalid || undefined}
+            aria-required={field.required || undefined}
+            className="mt-0.5 h-4 w-4 rounded border-field-line"
           />
-          <span>
+          <label htmlFor={field.key} className="text-sm text-muted">
             {field.label}
-            {field.required && <span className="ml-0.5 text-rose-600">*</span>}
-          </span>
-        </label>
+            {field.required && (
+              <>
+                <span aria-hidden="true" className="ml-0.5 text-danger">
+                  *
+                </span>
+                <span className="sr-only"> (required)</span>
+              </>
+            )}
+          </label>
+        </div>
       );
 
     case "file":
@@ -316,13 +492,14 @@ function FieldInput({
               if (problem) {
                 e.target.value = "";
                 onChange(null);
-                window.alert(problem);
+                onFileProblem(problem);
                 return;
               }
             }
+            onFileProblem(null);
             onChange(field.type === "file_multiple" ? files : (files[0] ?? null));
           }}
-          className={`${common.className} file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm dark:file:bg-slate-800 dark:file:text-slate-200`}
+          className={`${common.className} file:mr-3 file:rounded file:border-0 file:bg-sunken file:px-3 file:py-1.5 file:text-sm`}
         />
       );
 

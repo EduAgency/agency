@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { ACCESS_FEE, COMPANY, REFUND } from "@/lib/company";
 
 /**
  * Landing page.
  *
  * Deliberately plain (plan §9): the fee is stated on the page rather than
- * revealed at checkout, there are no countdown timers or "limited slots"
+ * revealed at checkout, there are no countdown timers or"limited slots"
  * prompts, and there is no social proof section until there are real
  * placements to name. The audience is students and parents who are already
  * wary of scams in this industry — pressure tactics cost more trust than they
@@ -47,41 +48,42 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
       <header className="space-y-5">
-        <p className="text-sm font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
-          Nasuru
-        </p>
-        <h1 className="text-3xl leading-tight font-semibold text-slate-900 sm:text-4xl dark:text-slate-50">
+        <p className="text-sm font-medium tracking-wide text-subtle uppercase">Nasuru</p>
+        <h1 className="text-3xl leading-tight font-semibold text-ink sm:text-4xl">
           We guide Nigerian students through university applications abroad — application tracking,
           document checklists and support in one place.
         </h1>
-        <p className="text-lg text-slate-600 dark:text-slate-300">
+        <p className="text-lg text-muted">
           Most applications fail on paperwork, not on grades. We tell you exactly what your school
           needs, check each document before you submit, and keep the whole file in one place.
         </p>
         <div className="flex flex-wrap items-center gap-4 pt-2">
           <Link
             href="/signup"
-            className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+            className="rounded-lg bg-accent px-6 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-hover"
           >
             Create an account
           </Link>
-          <Link href="/login" className="text-sm font-medium text-slate-700 underline underline-offset-4 dark:text-slate-300">
+          <Link
+            href="/login"
+            className="text-sm font-medium text-muted underline underline-offset-4"
+          >
             I already have an account
           </Link>
         </div>
       </header>
 
       <section className="mt-16 space-y-6">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">How it works</h2>
+        <h2 className="text-xl font-semibold text-ink">How it works</h2>
         <ol className="space-y-5">
           {STEPS.map((step, index) => (
             <li key={step.title} className="flex gap-4">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white dark:bg-slate-100 dark:text-slate-900">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-on-accent">
                 {index + 1}
               </span>
               <div>
-                <h3 className="font-medium text-slate-900 dark:text-slate-100">{step.title}</h3>
-                <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{step.body}</p>
+                <h3 className="font-medium text-ink">{step.title}</h3>
+                <p className="mt-0.5 text-sm text-muted">{step.body}</p>
               </div>
             </li>
           ))}
@@ -90,30 +92,35 @@ export default function Home() {
 
       {/* The fee is stated here, before signup — hiding it until checkout costs
           trust with exactly the audience least able to afford a surprise. */}
-      <section className="mt-16 rounded-xl border border-slate-200 p-6 dark:border-slate-800">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">What it costs</h2>
-        <p className="mt-3 text-2xl font-semibold text-slate-900 dark:text-slate-50">
-          ₦5,000 <span className="text-base font-normal text-slate-600 dark:text-slate-400">one-time access fee</span>
+      <section className="mt-16 rounded-xl border border-line p-6">
+        <h2 className="text-xl font-semibold text-ink">What it costs</h2>
+        <p className="mt-3 text-2xl font-semibold text-ink">
+          {ACCESS_FEE.formatted}{" "}
+          <span className="text-base font-normal text-muted">one-time access fee</span>
         </p>
 
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <div>
-            <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100">What it includes</h3>
-            <ul className="mt-2 space-y-1.5 text-sm text-slate-600 dark:text-slate-400">
+            <h3 className="text-sm font-medium text-ink">What it includes</h3>
+            <ul className="mt-2 space-y-1.5 text-sm text-muted">
               {INCLUDED.map((item) => (
                 <li key={item} className="flex gap-2">
-                  <span aria-hidden className="text-emerald-600 dark:text-emerald-400">✓</span>
+                  <span aria-hidden className="text-success">
+                    ✓
+                  </span>
                   {item}
                 </li>
               ))}
             </ul>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100">What it does not include</h3>
-            <ul className="mt-2 space-y-1.5 text-sm text-slate-600 dark:text-slate-400">
+            <h3 className="text-sm font-medium text-ink">What it does not include</h3>
+            <ul className="mt-2 space-y-1.5 text-sm text-muted">
               {NOT_INCLUDED.map((item) => (
                 <li key={item} className="flex gap-2">
-                  <span aria-hidden className="text-slate-400">–</span>
+                  <span aria-hidden className="text-subtle">
+                    –
+                  </span>
                   {item}
                 </li>
               ))}
@@ -121,8 +128,9 @@ export default function Home() {
           </div>
         </div>
 
-        <p className="mt-6 text-sm text-slate-600 dark:text-slate-400">
-          Read the{" "}
+        <p className="mt-6 text-sm text-muted">
+          Full refund within {REFUND.coolingOffDays} days if we have not yet reviewed one of your
+          documents. Read the{" "}
           <Link href="/refund-policy" className="underline underline-offset-2">
             refund policy
           </Link>{" "}
@@ -134,16 +142,25 @@ export default function Home() {
         </p>
       </section>
 
-      <footer className="mt-16 border-t border-slate-200 pt-8 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+      <footer className="mt-16 border-t border-line pt-8 text-sm text-subtle">
         <nav className="flex flex-wrap gap-x-6 gap-y-2">
-          <Link href="/privacy" className="hover:underline">Privacy policy</Link>
-          <Link href="/terms" className="hover:underline">Terms of service</Link>
-          <Link href="/refund-policy" className="hover:underline">Refund policy</Link>
-          <Link href="/contact" className="hover:underline">Contact</Link>
+          <Link href="/privacy" className="hover:underline">
+            Privacy policy
+          </Link>
+          <Link href="/terms" className="hover:underline">
+            Terms of service
+          </Link>
+          <Link href="/refund-policy" className="hover:underline">
+            Refund policy
+          </Link>
+          <Link href="/contact" className="hover:underline">
+            Contact
+          </Link>
         </nav>
         <p className="mt-4">
-          Nasuru.com Limited. Your documents are stored encrypted and processed in line with the
-          Nigeria Data Protection Regulation.
+          {COMPANY.legalName} · RC <span className="font-mono">{COMPANY.registrationNumber}</span>.
+          Your documents are stored encrypted, are never publicly linkable, and are processed in
+          line with the Nigeria Data Protection Regulation.
         </p>
       </footer>
     </main>

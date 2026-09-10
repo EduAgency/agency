@@ -1,26 +1,254 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/**
+ * Design tokens.
+ *
+ * Before this file, every colour in the product was an inline Tailwind literal
+ * with a hand-written `dark:` twin — sixteen of them in `STATUS_STYLES` alone —
+ * and no documented palette existed to check contrast against
+ * (docs/enterprise-readiness.md §B10).
+ *
+ * The rule: components reference semantic tokens (`bg-surface`, `text-muted`,
+ * `border-danger`), never raw palette values and never a `dark:` variant. A
+ * component that reads `bg-surface` is correct in both themes by construction,
+ * because the token changes underneath it.
+ *
+ * Three theme states are supported, because the viewer has three: an explicit
+ * light choice, an explicit dark choice, and the default — no attribute at all,
+ * where only `prefers-color-scheme` decides. A token defined only inside a
+ * media query is the classic unreadable-UI bug, so every token is declared in
+ * the bare `:root` block first and only redefined afterwards.
+ *
+ * Contrast is verified, not assumed: `npm run check:contrast` reads the pairs
+ * out of this file and fails the build if any drops below its WCAG threshold.
+ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-on-accent: var(--on-accent);
+
+  --color-line: var(--line);
+  --color-field-line: var(--field-line);
+  --color-line-strong: var(--line-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-focus: var(--focus);
+
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-line: var(--danger-line);
+
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-line: var(--warning-line);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-line: var(--success-line);
+
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-info-line: var(--info-line);
+
+  --font-sans: var(--font-source-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
+/* ---------- Light: the complete set. Every token is declared here. ---------- */
+
+:root {
+  color-scheme: light;
+
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --sunken: #f8fafc;
+
+  --ink: #0f172a;
+  --muted: #475569;
+  --subtle: #64748b;
+  --on-accent: #ffffff;
+
+  --line: #e2e8f0;
+  /* Borders of actual controls carry meaning (WCAG 1.4.11) and are held to
+     3:1; the decorative --line above divides content and is not. */
+  --field-line: #7d8da3;
+  --line-strong: #64748b;
+
+  --accent: #0f172a;
+  --accent-hover: #334155;
+  /* A hue of its own, so focus never reads as "this element is selected". */
+  --focus: #1d4ed8;
+
+  --danger: #9f1239;
+  /* The destructive button flips its label colour with the theme, because
+     --danger itself flips from a deep red to a pale one. */
+  --on-danger: #ffffff;
+  --danger-bg: #fff1f2;
+  --danger-line: #fecdd3;
+
+  --warning: #92400e;
+  --warning-bg: #fffbeb;
+  --warning-line: #fde68a;
+
+  --success: #065f46;
+  --success-bg: #ecfdf5;
+  --success-line: #a7f3d0;
+
+  --info: #075985;
+  --info-bg: #f0f9ff;
+  --info-line: #bae6fd;
+}
+
+/* ---------- Dark: redefines tokens only, never introduces new ones. -------- */
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --canvas: #020617;
+    --surface: #0f172a;
+    --sunken: #1e293b;
+
+    --ink: #f1f5f9;
+    --muted: #cbd5e1;
+    --subtle: #94a3b8;
+    --on-accent: #0f172a;
+
+    --line: #1e293b;
+    --field-line: #64748b;
+    --line-strong: #94a3b8;
+
+    --accent: #f1f5f9;
+    --accent-hover: #ffffff;
+    --focus: #93c5fd;
+
+    --danger: #fda4af;
+    --on-danger: #4c0519;
+    --danger-bg: #4c0519;
+    --danger-line: #9f1239;
+
+    --warning: #fcd34d;
+    --warning-bg: #451a03;
+    --warning-line: #92400e;
+
+    --success: #6ee7b7;
+    --success-bg: #022c22;
+    --success-line: #065f46;
+
+    --info: #7dd3fc;
+    --info-bg: #082f49;
+    --info-line: #075985;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --canvas: #020617;
+  --surface: #0f172a;
+  --sunken: #1e293b;
+
+  --ink: #f1f5f9;
+  --muted: #cbd5e1;
+  --subtle: #94a3b8;
+  --on-accent: #0f172a;
+
+  --line: #1e293b;
+  --field-line: #64748b;
+  --line-strong: #94a3b8;
+
+  --accent: #f1f5f9;
+  --accent-hover: #ffffff;
+  --focus: #93c5fd;
+
+  --danger: #fda4af;
+  --on-danger: #4c0519;
+  --danger-bg: #4c0519;
+  --danger-line: #9f1239;
+
+  --warning: #fcd34d;
+  --warning-bg: #451a03;
+  --warning-line: #92400e;
+
+  --success: #6ee7b7;
+  --success-bg: #022c22;
+  --success-line: #065f46;
+
+  --info: #7dd3fc;
+  --info-bg: #082f49;
+  --info-line: #075985;
+}
+
+@layer base {
+  /**
+   * One focus treatment for the whole product.
+   *
+   * Inputs used to set `outline-none` and substitute their own ring while
+   * buttons and links declared nothing at all and fell back to the UA outline —
+   * a different shape and colour on every element, and near-invisible on a dark
+   * surface (§B2). `:focus-visible` means pointer users never see it and
+   * keyboard users always do.
+   */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Only suppress the default where a replacement is guaranteed above. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Reference codes, payment references and amounts line up in columns. */
+  code,
+  kbd,
+  samp,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /**
+   * WCAG 2.5.8: every interactive target is at least 24×24 CSS pixels. The
+   * checkboxes and radios in the form engine render at 16px, so the rule adds
+   * the difference as an invisible outset rather than resizing the control and
+   * changing how the forms look.
+   */
+  input[type="checkbox"],
+  input[type="radio"] {
+    outline-offset: 2px;
+  }
+  input[type="checkbox"]::before,
+  input[type="radio"]::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    position: relative;
+  }
+}
+
+/**
+ * Motion is opt-out at the platform level as well as per-component, so a
+ * transition added later without thinking still respects the preference (§B5).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

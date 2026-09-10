@@ -64,32 +64,36 @@ export default function ReferralsPage() {
     }
   }
 
-  if (loading || !data) return <main className="p-12 text-sm text-slate-500">Loading…</main>;
+  if (loading || !data) return <div className="p-12 text-sm text-subtle">Loading…</div>;
 
   const balance = Number(data.summary.available_balance);
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
+    <div className="mx-auto max-w-2xl px-6 py-12">
       <BackLink href="/dashboard">Back to my applications</BackLink>
-      <h1 className="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-50">Refer a friend</h1>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      <h1 className="mt-4 text-2xl font-semibold text-ink">Refer a friend</h1>
+      <p className="mt-1 text-sm text-muted">
         Share your link. You earn when someone you referred activates their account — not just when
         they sign up.
       </p>
 
-      {error && <div className="mt-6"><Alert>{error}</Alert></div>}
+      {error && (
+        <div className="mt-6">
+          <Alert>{error}</Alert>
+        </div>
+      )}
 
-      <section className="mt-8 rounded-xl border border-slate-200 p-5 dark:border-slate-800">
-        <p className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
-          Your link
-        </p>
+      <section className="mt-8 rounded-xl border border-line p-5">
+        <p className="text-xs font-medium tracking-wide text-subtle uppercase">Your link</p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <code className="min-w-0 flex-1 truncate rounded bg-slate-100 px-3 py-2 text-sm dark:bg-slate-800">
+          <code className="min-w-0 flex-1 truncate rounded bg-sunken px-3 py-2 text-sm">
             {data.summary.share_url}
           </code>
-          <Button variant="secondary" onClick={copy}>{copied ? "Copied" : "Copy"}</Button>
+          <Button variant="secondary" onClick={copy}>
+            {copied ? "Copied" : "Copy"}
+          </Button>
         </div>
-        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-2 text-xs text-subtle">
           Code: <span className="font-mono">{data.summary.code}</span>
         </p>
       </section>
@@ -100,29 +104,25 @@ export default function ReferralsPage() {
           { label: "Activated", value: data.summary.conversions },
           { label: "Earned", value: `₦${Number(data.summary.total_earned).toLocaleString()}` },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
-            <p className="text-xs text-slate-500 dark:text-slate-400">{stat.label}</p>
-            <p className="mt-1 text-xl font-semibold text-slate-900 tabular-nums dark:text-slate-50">
-              {stat.value}
-            </p>
+          <div key={stat.label} className="rounded-xl border border-line p-4">
+            <p className="text-xs text-subtle">{stat.label}</p>
+            <p className="mt-1 text-xl font-semibold text-ink tabular-nums">{stat.value}</p>
           </div>
         ))}
       </section>
 
-      <section className="mt-6 rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+      <section className="mt-6 rounded-xl border border-line p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Available to withdraw</p>
-            <p className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
-              ₦{balance.toLocaleString()}
-            </p>
+            <p className="text-sm text-muted">Available to withdraw</p>
+            <p className="text-2xl font-semibold text-ink">₦{balance.toLocaleString()}</p>
           </div>
           <Button onClick={() => setShowPayout(true)} disabled={balance <= 0}>
             Request payout
           </Button>
         </div>
         {balance <= 0 && (
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-2 text-xs text-subtle">
             Rewards become available once the referred student&apos;s payment is confirmed and the
             reward is approved.
           </p>
@@ -141,20 +141,24 @@ export default function ReferralsPage() {
 
       {data.rewards.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Your rewards</h2>
-          <ul className="mt-3 divide-y divide-slate-200 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+          <h2 className="text-base font-semibold text-ink">Your rewards</h2>
+          <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
             {data.rewards.map((reward) => (
               <li key={reward.id} className="flex items-center justify-between p-4 text-sm">
                 <div>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    ₦{Number(reward.amount).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="font-medium text-ink">₦{Number(reward.amount).toLocaleString()}</p>
+                  <p className="text-xs text-subtle">
                     {new Date(reward.created_at).toLocaleDateString()}
                   </p>
                 </div>
                 <StatusBadge
-                  status={reward.status === "paid" ? "verified" : reward.status === "void" ? "rejected" : "pending_review"}
+                  status={
+                    reward.status === "paid"
+                      ? "verified"
+                      : reward.status === "void"
+                        ? "rejected"
+                        : "pending_review"
+                  }
                   label={
                     { pending: "Under review", approved: "Approved", paid: "Paid", void: "Void" }[
                       reward.status
@@ -169,17 +173,20 @@ export default function ReferralsPage() {
 
       {data.events.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Activity</h2>
-          <ul className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+          <h2 className="text-base font-semibold text-ink">Activity</h2>
+          <ul className="mt-3 space-y-2 text-sm text-muted">
             {data.events.map((event) => (
               <li key={event.id} className="flex justify-between gap-4">
                 <span>
                   {event.student_name}{" "}
-                  {{ signup: "signed up", paid: "activated their account", offer: "received an offer", enrolled: "enrolled" }[
-                    event.event_type
-                  ] ?? event.event_type}
+                  {{
+                    signup: "signed up",
+                    paid: "activated their account",
+                    offer: "received an offer",
+                    enrolled: "enrolled",
+                  }[event.event_type] ?? event.event_type}
                 </span>
-                <span className="shrink-0 text-xs text-slate-500">
+                <span className="shrink-0 text-xs text-subtle">
                   {new Date(event.created_at).toLocaleDateString()}
                 </span>
               </li>
@@ -187,7 +194,7 @@ export default function ReferralsPage() {
           </ul>
         </section>
       )}
-    </main>
+    </div>
   );
 }
 
@@ -214,8 +221,8 @@ function PayoutForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => 
   }
 
   return (
-    <form onSubmit={submit} className="mt-4 space-y-4 rounded-xl border border-slate-200 p-5 dark:border-slate-800">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Payout details</h2>
+    <form onSubmit={submit} className="mt-4 space-y-4 rounded-xl border border-line p-5">
+      <h2 className="text-base font-semibold text-ink">Payout details</h2>
       {error && <Alert>{error}</Alert>}
 
       <Field label="Bank" htmlFor="bank_name">
@@ -249,8 +256,12 @@ function PayoutForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => 
       </Field>
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={busy}>{busy ? "Submitting…" : "Request payout"}</Button>
-        <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={busy}>
+          {busy ? "Submitting…" : "Request payout"}
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
       </div>
     </form>
   );

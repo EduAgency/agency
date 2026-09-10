@@ -57,15 +57,15 @@ export default function NewApplicationPage() {
     }
   }
 
-  if (loading) return <main className="p-12 text-sm text-slate-500">Loading…</main>;
+  if (loading) return <div className="p-12 text-sm text-subtle">Loading…</div>;
 
   return (
-    <main className="mx-auto max-w-md px-6 py-12">
+    <div className="mx-auto max-w-md px-6 py-12">
       <BackLink href="/dashboard">Back to my applications</BackLink>
-      <h1 className="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-50">Add a school</h1>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        We&apos;ll build your checklist from this school&apos;s actual requirements. You can apply to
-        as many schools as you like — each gets its own checklist.
+      <h1 className="mt-4 text-2xl font-semibold text-ink">Add a school</h1>
+      <p className="mt-1 text-sm text-muted">
+        We&apos;ll build your checklist from this school&apos;s actual requirements. You can apply
+        to as many schools as you like — each gets its own checklist.
       </p>
 
       <form onSubmit={submit} className="mt-8 space-y-5">
@@ -106,7 +106,9 @@ export default function NewApplicationPage() {
             >
               <option value="">Not sure yet</option>
               {school.programmes.map((option) => (
-                <option key={option.id} value={option.id}>{option.name}</option>
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
               ))}
             </select>
           </Field>
@@ -127,7 +129,9 @@ export default function NewApplicationPage() {
             >
               <option value="">Select an intake…</option>
               {programme.intakes.map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option}>
+                  {option}
+                </option>
               ))}
             </select>
           ) : (
@@ -146,6 +150,6 @@ export default function NewApplicationPage() {
           {busy ? "Setting up your checklist…" : "Start this application"}
         </Button>
       </form>
-    </main>
+    </div>
   );
 }

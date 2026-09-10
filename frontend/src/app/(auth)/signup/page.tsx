@@ -37,10 +37,7 @@ function SignupForm() {
   useEffect(() => {
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const result =
-        code.length < 4
-          ? null
-          : await checkReferralCode(code).catch(() => null);
+      const result = code.length < 4 ? null : await checkReferralCode(code).catch(() => null);
       if (cancelled) return;
       setReferrer(result?.valid ? (result.referrer_first_name ?? "") : null);
     }, 400);
@@ -79,10 +76,10 @@ function SignupForm() {
 
   return (
     <main className="mx-auto max-w-md px-6 py-12">
-      <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Create your account</h1>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Takes a minute. The ₦5,000 access fee comes after this step, and you&apos;ll see exactly what
-        it covers before you pay.
+      <h1 className="text-2xl font-semibold text-ink">Create your account</h1>
+      <p className="mt-1 text-sm text-muted">
+        Takes a minute. The ₦5,000 access fee comes after this step, and you&apos;ll see exactly
+        what it covers before you pay.
       </p>
 
       <form onSubmit={submit} className="mt-8 space-y-5">
@@ -177,32 +174,39 @@ function SignupForm() {
           />
         </Field>
 
-        <div className="space-y-3 border-t border-slate-200 pt-5 dark:border-slate-800">
-          <label className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
+        <div className="space-y-3 border-t border-line pt-5">
+          <label className="flex items-start gap-2.5 text-sm text-muted">
             <input
               type="checkbox"
               required
               checked={form.accept_terms}
               onChange={(e) => update("accept_terms", e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-600"
+              className="mt-0.5 h-4 w-4 rounded border-field-line"
             />
             <span>
               I agree to the{" "}
-              <Link href="/terms" className="underline underline-offset-2">terms of service</Link> and{" "}
-              <Link href="/privacy" className="underline underline-offset-2">privacy policy</Link>, including
-              how my documents are stored and processed.
+              <Link href="/terms" className="underline underline-offset-2">
+                terms of service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="underline underline-offset-2">
+                privacy policy
+              </Link>
+              , including how my documents are stored and processed.
             </span>
           </label>
           {firstError("accept_terms") && (
-            <p role="alert" className="text-xs text-rose-600">{firstError("accept_terms")}</p>
+            <p role="alert" className="text-xs text-danger">
+              {firstError("accept_terms")}
+            </p>
           )}
 
-          <label className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
+          <label className="flex items-start gap-2.5 text-sm text-muted">
             <input
               type="checkbox"
               checked={form.marketing_opt_in}
               onChange={(e) => update("marketing_opt_in", e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-600"
+              className="mt-0.5 h-4 w-4 rounded border-field-line"
             />
             <span>Send me occasional updates about scholarships and intakes. Optional.</span>
           </label>
@@ -213,9 +217,11 @@ function SignupForm() {
         </Button>
       </form>
 
-      <p className="mt-6 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mt-6 text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="underline underline-offset-2">Sign in</Link>
+        <Link href="/login" className="underline underline-offset-2">
+          Sign in
+        </Link>
       </p>
     </main>
   );

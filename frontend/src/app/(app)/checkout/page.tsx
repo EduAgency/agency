@@ -57,47 +57,56 @@ export default function CheckoutPage() {
     }
   }
 
-  if (loading) return <main className="p-12 text-sm text-slate-500">Loading…</main>;
+  if (loading) return <div className="p-12 text-sm text-subtle">Loading…</div>;
 
   return (
-    <main className="mx-auto max-w-lg px-6 py-12">
-      <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Activate your account</h1>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    <div className="mx-auto max-w-lg px-6 py-12">
+      <h1 className="text-2xl font-semibold text-ink">Activate your account</h1>
+      <p className="mt-1 text-sm text-muted">
         One payment of ₦5,000. This is the only fee we charge for the platform.
       </p>
 
-      <section className="mt-8 rounded-xl border border-slate-200 p-6 dark:border-slate-800">
+      <section className="mt-8 rounded-xl border border-line p-6">
         <div className="flex items-baseline justify-between">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Platform access</span>
-          <span className="text-2xl font-semibold text-slate-900 dark:text-slate-50">₦5,000</span>
+          <span className="text-sm font-medium text-muted">Platform access</span>
+          <span className="text-2xl font-semibold text-ink">₦5,000</span>
         </div>
 
-        <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+        <ul className="mt-5 space-y-2 text-sm text-muted">
           {INCLUDED.map((item) => (
             <li key={item} className="flex gap-2">
-              <span aria-hidden className="text-emerald-600 dark:text-emerald-400">✓</span>
+              <span aria-hidden className="text-success">
+                ✓
+              </span>
               {item}
             </li>
           ))}
         </ul>
 
-        <p className="mt-5 border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-          This fee does not buy admission or a visa — those are decided by the school and the embassy.
-          Read the <a href="/refund-policy" className="underline underline-offset-2">refund policy</a>{" "}
+        <p className="mt-5 border-t border-line pt-4 text-xs text-subtle">
+          This fee does not buy admission or a visa — those are decided by the school and the
+          embassy. Read the{" "}
+          <a href="/refund-policy" className="underline underline-offset-2">
+            refund policy
+          </a>{" "}
           before paying.
         </p>
       </section>
 
-      {error && <div className="mt-6"><Alert>{error}</Alert></div>}
+      {error && (
+        <div className="mt-6">
+          <Alert>{error}</Alert>
+        </div>
+      )}
 
       {gateways.length > 1 && (
         <fieldset className="mt-6">
-          <legend className="text-sm font-medium text-slate-800 dark:text-slate-200">Pay with</legend>
+          <legend className="text-sm font-medium text-ink">Pay with</legend>
           <div className="mt-2 space-y-2">
             {gateways.map((gateway) => (
               <label
                 key={gateway.gateway}
-                className="flex items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2.5 text-sm dark:border-slate-800"
+                className="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2.5 text-sm"
               >
                 <input
                   type="radio"
@@ -109,7 +118,7 @@ export default function CheckoutPage() {
                 />
                 <span className="capitalize">{gateway.label || gateway.gateway}</span>
                 {gateway.is_test_mode && (
-                  <span className="ml-auto rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                  <span className="ml-auto rounded bg-warning-bg px-2 py-0.5 text-xs text-warning">
                     test mode
                   </span>
                 )}
@@ -122,7 +131,8 @@ export default function CheckoutPage() {
       {gateways.length === 0 && !error ? (
         <div className="mt-6">
           <Alert tone="info">
-            Payments are temporarily unavailable. Please check back shortly — nothing has been charged.
+            Payments are temporarily unavailable. Please check back shortly — nothing has been
+            charged.
           </Alert>
         </div>
       ) : (
@@ -130,6 +140,6 @@ export default function CheckoutPage() {
           {busy ? "Taking you to checkout…" : "Pay ₦5,000"}
         </Button>
       )}
-    </main>
+    </div>
   );
 }

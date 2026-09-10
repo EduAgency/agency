@@ -6,7 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "check:contrast": "node scripts/check-contrast.mjs",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"scripts/*.mjs\"",
+    "verify": "npm run check:contrast && npm run check:launch && npm run lint && tsc --noEmit && npm run test",
+    "check:launch": "node scripts/check-launch-ready.mjs"
   },
   "dependencies": {
     "next": "16.3.4",
@@ -14,13 +21,23 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/node": "^22.20.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "jsdom": "^30.0.1",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.0"
   }
 }

@@ -75,37 +75,39 @@ export default function IntakePage() {
   }
 
   if (loading || (!form && !message)) {
-    return <main className="p-12 text-sm text-slate-500">Loading…</main>;
+    return <div className="p-12 text-sm text-subtle">Loading…</div>;
   }
 
   if (done) {
     return (
-      <main className="mx-auto max-w-md px-6 py-20 text-center">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Thank you</h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+      <div className="mx-auto max-w-md px-6 py-20 text-center">
+        <h1 className="text-2xl font-semibold text-ink">Thank you</h1>
+        <p className="mt-2 text-sm text-muted">
           {form?.success_message || "Your counsellor will review this shortly."}
         </p>
         <div className="mt-8">
           <BackLink href="/dashboard">Back to my applications</BackLink>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
+    <div className="mx-auto max-w-2xl px-6 py-12">
       <BackLink href="/dashboard">Back to my applications</BackLink>
 
       {form && (
         <header className="mt-4">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{form.title}</h1>
-          {form.description && (
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{form.description}</p>
-          )}
+          <h1 className="text-2xl font-semibold text-ink">{form.title}</h1>
+          {form.description && <p className="mt-1 text-sm text-muted">{form.description}</p>}
         </header>
       )}
 
-      {message && <div className="mt-6"><Alert tone={serverErrors ? "info" : "error"}>{message}</Alert></div>}
+      {message && (
+        <div className="mt-6">
+          <Alert tone={serverErrors ? "info" : "error"}>{message}</Alert>
+        </div>
+      )}
 
       {form && (
         <div className="mt-8">
@@ -120,6 +122,6 @@ export default function IntakePage() {
           />
         </div>
       )}
-    </main>
+    </div>
   );
 }
