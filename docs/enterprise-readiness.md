@@ -497,17 +497,47 @@ The dark-mode input bug is the one worth dwelling on: it shipped through Phase 2
 checker, because that verifies *tokens*, not whether a component uses them. Only rendering the
 page and measuring it caught it.
 
-### Phase 4 — Pass the questionnaire
+### Phase 4 — Pass the questionnaire 🟡 MFA and throttling shipped
 
 > **Gate:** a partner institution's security and data-protection review clears without
-> exceptions.
+> exceptions. **Not yet met** — four of six items outstanding.
 
-Everything a buyer or regulator asks for that the product cannot currently answer yes to.
+| Item | State |
+|---|---|
+| **MFA** | ✅ TOTP + 10 recovery codes, mandatory for staff. 23 tests |
+| **Throttling** | ✅ `UserRateThrottle` + `AnonRateThrottle` now floor the ~79 endpoints that declared no scope; MFA verification capped at 10/hour |
+| **Session management** | ❌ No device list, no remote revoke, no "sign out everywhere" |
+| **Notification preferences** | ❌ No per-channel opt-out. Still an NDPR exposure: unsolicited SMS to Nigerian numbers with no unsubscribe |
+| **NDPR data rights** | ❌ `erase_student` exists server-side but there is no self-service export or deletion request flow. The privacy policy's 30-day commitment still rests on a person reading an inbox |
+| **SSO / SCIM** | ❌ Deliberately deferred — see below |
+| **Accessibility statement** | ❌ Not written, though the evidence for it now exists |
 
-- **MFA** (TOTP + recovery codes), mandatory for all staff roles
-- **SSO** — OIDC first, SAML if a partner demands it; SCIM deprovisioning
-- **Session management** — device list, remote revoke, sign out everywhere
-- **Notification preference centre** — per-channel, per-category, unsubscribe, quiet hours
-- **NDPR data rights** — self-service export, deletion request workflow, retention schedule,
-  soft-delete across the models
-- **Throttling** extended past the four scoped endpoints; a published accessibility statement
+**On MFA.** `django-otp` was already installed and already gating the Django admin; nothing
+protected the API. Both device types come from django-otp, so there are **no new tables and no
+migration**. Four decisions worth recording:
+
+- **Enrolment does not switch MFA on.** The device stays unconfirmed until the user proves they
+  can generate a code from it, so a mistyped secret is caught at setup rather than at the next
+  sign-in.
+- **The second factor is checked only after the password is already correct**, so the response
+  never reveals whether an account exists or has MFA enabled.
+- **Staff cannot switch it off.** Otherwise the requirement is advisory, and advisory controls
+  get turned off the moment they are inconvenient.
+- **Recovery codes are stored unformatted, displayed as `XXXX-XXXX`.** The hyphen is a reading
+  aid, not part of the secret, and the alphabet excludes `O`/`0` and `I`/`1` because these get
+  written down and read back under stress.
+
+Three tests initially failed against *correct* behaviour: django-otp refuses a replayed TOTP
+token, and throttles a device after a failed attempt so the next verification is refused even
+when the code is right. Both are documented in `apps/accounts/mfa.py` — the second is worth
+knowing, because it means a mistyped code costs the user a moment rather than an instant retry.
+
+**Why SSO is deferred rather than half-built.** OIDC needs a real identity provider to test
+against, and nothing can be verified without one. It is also demand-driven: it matters when a
+partner institution requires directory-managed accounts, and not before. Building it untested,
+ahead of that, would be the worst of both.
+
+**Remaining order of value.** Notification preferences first — it is the only outstanding item
+that is a live compliance exposure rather than a missing capability. Then NDPR self-service,
+which would let the privacy policy's 30-day commitment rest on code instead of a person. Then
+session management. The accessibility statement is an afternoon and can go whenever.
