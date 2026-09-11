@@ -15,6 +15,7 @@ from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from apps.accounts import views as accounts_views
 from apps.applications import views as application_views
 from apps.forms_engine import views as form_views
+from apps.notifications import api as notification_views
 from apps.payments import api as payment_views
 from apps.referrals import views as referral_views
 from apps.schools import views as school_views
@@ -68,6 +69,14 @@ auth_patterns = [
 
 urlpatterns = [
     path("auth/", include((auth_patterns, "auth"))),
+
+    # Telegram posts here. The secret path segment is checked against the
+    # configured verify token — Telegram carries no credentials of ours.
+    path(
+        "webhooks/telegram/<str:secret>/",
+        notification_views.TelegramWebhookView.as_view(),
+        name="telegram-webhook",
+    ),
     path("profile/", accounts_views.StudentProfileView.as_view(), name="student-profile"),
 
     # Forms — one route serves every admin-built form, by slug.
@@ -80,6 +89,13 @@ urlpatterns = [
     path("payments/initiate/", payment_views.InitiatePaymentView.as_view(), name="initiate-payment"),
     path("payments/verify/", payment_views.VerifyPaymentView.as_view(), name="verify-payment"),
     path("payments/mine/", payment_views.MyPaymentsView.as_view(), name="my-payments"),
+
+    # Notifications — the preference centre, channel connection, and the inbox.
+    path("notifications/", notification_views.InboxView.as_view(), name="inbox"),
+    path("notifications/preferences/", notification_views.NotificationPreferencesView.as_view(), name="notification-preferences"),
+    path("notifications/quiet-hours/", notification_views.QuietHoursView.as_view(), name="quiet-hours"),
+    path("notifications/whatsapp/", notification_views.WhatsAppOptInView.as_view(), name="whatsapp-opt-in"),
+    path("notifications/telegram/", notification_views.TelegramLinkView.as_view(), name="telegram-link"),
 
     # Referrals
     path("referrals/check/", referral_views.CheckReferralCodeView.as_view(), name="check-referral"),

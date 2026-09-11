@@ -47,6 +47,12 @@ function resolve(pathname: string, search: URLSearchParams, session: Json): Json
   if (pathname === "/api/payments/mine/") return seed.payments;
   if (pathname === "/api/payments/verify/") return seed.payments[0];
   if (pathname === "/api/referrals/mine/") return seed.referrals;
+  if (pathname === "/api/notifications/preferences/") return seed.preferenceCentre;
+  if (pathname === "/api/notifications/quiet-hours/") return { detail: "Saved." };
+  if (pathname === "/api/notifications/whatsapp/") return { detail: "Saved." };
+  if (pathname === "/api/notifications/telegram/") {
+    return { url: "https://t.me/nasuru_bot?start=example", bot_username: "nasuru_bot", expires_in_seconds: 900 };
+  }
   if (pathname === "/api/forms/student-intake/") return seed.intakeForm;
   if (pathname === "/api/my/submissions/") return [];
 

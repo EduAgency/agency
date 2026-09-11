@@ -148,6 +148,14 @@ class StudentProfile(BaseModel, ArchivableModel):
     country_of_residence = models.CharField(max_length=100, blank=True, default="Nigeria")
     state_of_residence = models.CharField(max_length=100, blank=True)
     whatsapp = models.CharField(max_length=20, blank=True, validators=[phone_validator])
+    # WhatsApp Business policy requires a recorded opt-in before the first
+    # message — holding someone's number is not permission to use it.
+    whatsapp_opted_in_at = models.DateTimeField(null=True, blank=True)
+
+    # Outside these hours nothing non-urgent is delivered. Stored in the
+    # agency timezone (Africa/Lagos); blank means no quiet hours.
+    quiet_hours_start = models.TimeField(null=True, blank=True)
+    quiet_hours_end = models.TimeField(null=True, blank=True)
 
     stage = models.CharField(
         max_length=20, choices=Stage.choices, default=Stage.REGISTERED, db_index=True

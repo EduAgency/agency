@@ -34,6 +34,7 @@ const STUDENT_ROUTES = [
   { path: "/applications/app-1", name: "Application checklist", heading: /.+/ },
   { path: "/referrals", name: "Referrals", heading: /.+/ },
   { path: "/intake", name: "Intake form", heading: /.+/ },
+  { path: "/settings/notifications", name: "Notification settings", heading: /How we reach you/ },
 ];
 
 const STAFF_ROUTES = [
@@ -42,9 +43,18 @@ const STAFF_ROUTES = [
   { path: "/staff/students/sp-1", name: "Student record", heading: /Amara Okafor/ },
 ];
 
+/**
+ * Scans run with reduced motion.
+ *
+ * Not to skip anything — axe does not test animation — but because the app's
+ * own CSS collapses every transition to ~0 under `prefers-reduced-motion`, and
+ * a colour-contrast check that lands mid-transition reads an interpolated
+ * colour that never actually renders at rest. That was an intermittent failure
+ * on the checklist page's progress bar.
+ */
 for (const scheme of ["light", "dark"] as const) {
   test.describe(`student routes — ${scheme}`, () => {
-    test.use({ colorScheme: scheme });
+    test.use({ colorScheme: scheme, reducedMotion: "reduce" });
 
     for (const route of STUDENT_ROUTES) {
       test(`${route.name} has no axe violations`, async ({ studentPage }) => {
@@ -64,7 +74,7 @@ for (const scheme of ["light", "dark"] as const) {
   });
 
   test.describe(`staff routes — ${scheme}`, () => {
-    test.use({ colorScheme: scheme });
+    test.use({ colorScheme: scheme, reducedMotion: "reduce" });
 
     for (const route of STAFF_ROUTES) {
       test(`${route.name} has no axe violations`, async ({ staffPage }) => {
@@ -178,9 +188,56 @@ test.describe("review queue keyboard flow", () => {
 
 test.describe("the fixture API itself", () => {
   test("fails loudly on an unmapped route", async ({ studentPage }) => {
-    const response = await studentPage.request.get("http://127.0.0.1:3000/api/not-a-real-route/");
+    await studentPage.goto("/dashboard");
+    // Fetched from inside the page: `page.request` is a separate context that
+    // bypasses route interception entirely, so it would not exercise the
+    // fixture at all.
+    const status = await studentPage.evaluate(async () => {
+      const res = await fetch("/api/not-a-real-route/");
+      return res.status;
+    });
     // Guards against the fixture silently answering 200 for everything, which
     // would make every test above meaningless.
-    expect(response.status()).toBe(404);
+    expect(status).toBe(404);
+  });
+});
+
+
+test.describe("notification preferences", () => {
+  test("a channel the user has not connected cannot be switched on", async ({ studentPage }) => {
+    await studentPage.goto("/settings/notifications");
+    await expect(studentPage.getByRole("heading", { name: /How we reach you/ })).toBeVisible();
+
+    // WhatsApp is available but not opted in. Offering a live toggle here is
+    // how a student opts in, stops watching email, and misses a rejection.
+    const whatsapp = studentPage.getByRole("checkbox", { name: /Document by WhatsApp/ });
+    await expect(whatsapp).toBeDisabled();
+
+    // Telegram is connected, so its toggle works.
+    await expect(studentPage.getByRole("checkbox", { name: /Document by Telegram/ })).toBeEnabled();
+  });
+
+  test("transactional email is locked on, and says so", async ({ studentPage }) => {
+    await studentPage.goto("/settings/notifications");
+    await expect(studentPage.getByRole("heading", { name: /How we reach you/ })).toBeVisible();
+
+    const accountEmail = studentPage.getByRole("checkbox", { name: /Account by Email/ });
+    await expect(accountEmail).toBeChecked();
+    await expect(accountEmail).toBeDisabled();
+    await expect(accountEmail).toHaveAccessibleName(/always on/i);
+  });
+
+  test("an optional category can be switched off", async ({ studentPage }) => {
+    await studentPage.goto("/settings/notifications");
+    await expect(studentPage.getByRole("heading", { name: /How we reach you/ })).toBeVisible();
+
+    await expect(studentPage.getByRole("checkbox", { name: /Document by Email/ })).toBeEnabled();
+  });
+
+  test("SMS is not offered anywhere", async ({ studentPage }) => {
+    await studentPage.goto("/settings/notifications");
+    await expect(studentPage.getByRole("heading", { name: /How we reach you/ })).toBeVisible();
+
+    await expect(studentPage.getByText(/SMS/i)).toHaveCount(0);
   });
 });

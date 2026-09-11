@@ -17,6 +17,7 @@ const NAV = [
   { href: "/dashboard", label: "Applications" },
   { href: "/documents", label: "Documents" },
   { href: "/referrals", label: "Referrals" },
+  { href: "/settings/notifications", label: "Notifications" },
 ];
 
 export function SkipLink() {

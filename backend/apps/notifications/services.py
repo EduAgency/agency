@@ -10,8 +10,10 @@ import logging
 
 from django.conf import settings
 from django.template import Context, Template
+from django.utils import timezone
 
-from .models import Notification, NotificationTemplate
+from . import preferences
+from .models import Channel, Notification, NotificationTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -33,31 +35,65 @@ def create_notification(
     category: str,
     body: str,
     subject: str = "",
-    channel: str = NotificationTemplate.Channel.IN_APP,
+    channel: str = None,
     template_key: str = "",
     action_url: str = "",
     context: dict = None,
     send_now: bool = True,
-) -> Notification:
+    urgent: bool = None,
+) -> list[Notification]:
+    """Record a notification and deliver it everywhere the user asked for.
+
+    Always writes one ``in_app`` row — that is the inbox, and the answer when a
+    student says they were never told. Then fans out to whichever of email,
+    WhatsApp and Telegram survive ``preferences.resolve``.
+
+    ``channel`` forces a single channel and skips preferences entirely. It
+    exists for the few messages that are about a channel — a Telegram
+    confirmation has to go to Telegram — and should not be used otherwise.
+    """
     context = context or {}
     if template_key:
         subject, body = _render(template_key, context, subject, body)
 
-    notification = Notification.objects.create(
-        recipient=recipient,
-        channel=channel,
-        category=category,
-        template_key=template_key,
-        subject=subject[:200],
-        body=body,
-        action_url=action_url[:500],
-        context=context,
-    )
-    if send_now and channel != NotificationTemplate.Channel.IN_APP:
-        from .tasks import deliver_notification
+    def _record(on_channel: str) -> Notification:
+        return Notification.objects.create(
+            recipient=recipient,
+            channel=on_channel,
+            category=category,
+            template_key=template_key,
+            subject=subject[:200],
+            body=body,
+            action_url=action_url[:500],
+            context=context,
+        )
 
-        deliver_notification.delay(str(notification.pk))
-    return notification
+    if channel is not None:
+        notification = _record(channel)
+        if send_now and channel != Channel.IN_APP:
+            _queue(notification)
+        return [notification]
+
+    # The in-app record is unconditional: it is never "delivered", so it is
+    # marked sent immediately rather than sitting queued forever.
+    inbox = _record(Channel.IN_APP)
+    inbox.status = Notification.Status.SENT
+    inbox.sent_at = timezone.now()
+    inbox.save(update_fields=["status", "sent_at", "updated_at"])
+
+    created = [inbox]
+    for target in preferences.resolve(recipient, category, urgent=urgent):
+        notification = _record(target)
+        created.append(notification)
+        if send_now:
+            _queue(notification)
+    return created
+
+
+def _queue(notification: Notification) -> None:
+    from .tasks import deliver_notification
+
+    deliver_notification.delay(str(notification.pk))
 
 
 # --------------------------------------------------------------------------
@@ -75,7 +111,6 @@ def notify_payment_received(payment) -> None:
             f"We've received your payment of {payment.currency} {payment.amount}. "
             "Your dashboard is now unlocked."
         ),
-        channel=NotificationTemplate.Channel.EMAIL,
         action_url=f"{settings.FRONTEND_BASE_URL}/dashboard",
         context={"reference": payment.reference, "amount": str(payment.amount)},
     )
@@ -94,7 +129,6 @@ def notify_document_rejected(item, reason: str) -> None:
             f"Your upload for '{item.label}' could not be accepted.\n\n"
             f"Reason: {reason}\n\nPlease upload a corrected version."
         ),
-        channel=NotificationTemplate.Channel.EMAIL,
         action_url=f"{settings.FRONTEND_BASE_URL}/applications/{item.checklist.application_id}/checklist",
         context={"item": item.label, "reason": reason},
     )
@@ -120,7 +154,6 @@ def notify_application_status(application, note: str = "") -> None:
         template_key="application_status",
         subject=f"{application.school.name}: {application.get_status_display()}",
         body=f"Your application to {application.school.name} is now: {application.get_status_display()}.\n{note}",
-        channel=NotificationTemplate.Channel.EMAIL,
         action_url=f"{settings.FRONTEND_BASE_URL}/applications/{application.pk}",
         context={"school": application.school.name, "status": application.get_status_display()},
     )

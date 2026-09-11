@@ -397,6 +397,81 @@ export const staffStudents = [
 ];
 
 /**
+ * Notification preference centre.
+ *
+ * Deliberately mixed: WhatsApp is available but NOT opted in, Telegram is
+ * available and connected, and email is locked on the two transactional
+ * categories. That combination renders every state the screen has — a live
+ * toggle, a disabled one, and a locked one — in a single scan.
+ */
+export const preferenceCentre = {
+  channels: [
+    { channel: "email", label: "Email", available: true, connected: true, locked: true },
+    { channel: "whatsapp", label: "WhatsApp", available: true, connected: false, locked: false },
+    { channel: "telegram", label: "Telegram", available: true, connected: true, locked: false },
+  ],
+  categories: [
+    {
+      category: "account",
+      label: "Account",
+      description: "Sign-in, password and security. Always sent by email.",
+      always_email: true,
+      channels: { email: true, whatsapp: false, telegram: false },
+    },
+    {
+      category: "payment",
+      label: "Payment",
+      description: "Receipts and refunds. Always sent by email.",
+      always_email: true,
+      channels: { email: true, whatsapp: false, telegram: false },
+    },
+    {
+      category: "document",
+      label: "Document",
+      description: "When a document is verified, or needs redoing.",
+      always_email: false,
+      channels: { email: true, whatsapp: false, telegram: true },
+    },
+    {
+      category: "application",
+      label: "Application",
+      description: "When an application moves forward, or a deadline is close.",
+      always_email: false,
+      channels: { email: true, whatsapp: false, telegram: false },
+    },
+    {
+      category: "message",
+      label: "Message",
+      description: "When your counsellor replies to you.",
+      always_email: false,
+      channels: { email: true, whatsapp: false, telegram: true },
+    },
+    {
+      category: "referral",
+      label: "Referral",
+      description: "When someone you referred signs up, and when a reward is earned.",
+      always_email: false,
+      channels: { email: true, whatsapp: false, telegram: false },
+    },
+    {
+      category: "system",
+      label: "System",
+      description: "Occasional tips and reminders. Off unless you ask for them.",
+      always_email: false,
+      channels: { email: false, whatsapp: false, telegram: false },
+    },
+  ],
+  quiet_hours: { start: "22:00:00", end: "07:00:00" },
+  telegram: {
+    available: true,
+    bot_username: "nasuru_bot",
+    connected: true,
+    username: "amara",
+  },
+  whatsapp: { available: true, number: "+234 803 000 0001", opted_in: false },
+};
+
+/**
  * Read by `backend/tests/test_frontend_contract.py`.
  *
  * Maps each fixture to the serializer it imitates, so drift between the two is
