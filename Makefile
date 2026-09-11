@@ -1,4 +1,4 @@
-# Nasuru — one entry point for every routine command.
+# Nasuru - one entry point for every routine command.
 #
 # Python is a uv project: dependencies, dev group and tool config all live in
 # backend/pyproject.toml, resolved into backend/uv.lock. Node is npm.
@@ -8,10 +8,34 @@
 #   make verify     everything CI runs
 #
 # `uv run` creates and syncs the environment on demand, so nothing here needs a
-# virtualenv activated — or even created — first, and there is no Windows/POSIX
+# virtualenv activated - or even created - first, and there is no Windows/POSIX
 # venv path to detect.
 
-SHELL := /bin/bash
+# Which shell runs the recipes.
+#
+# `/bin/bash` only resolves when make was itself launched from Git Bash. Run
+# make from PowerShell or cmd and that path does not exist, so make quietly
+# falls back to running each command through CreateProcess with no shell -- at
+# which point any recipe using a pipe, a glob or a builtin like `echo` dies
+# with "The system cannot find the file specified".
+#
+# So: find Git Bash by its real Windows path. A bare `bash` on PATH is NOT safe
+# here -- on most Windows machines that resolves to WSL's bash, which has a
+# different view of the filesystem and cannot see C:/Users/... at all.
+ifeq ($(OS),Windows_NT)
+	GIT_BASH := $(firstword $(wildcard \
+		C:/Program\ Files/Git/bin/bash.exe \
+		C:/Program\ Files\ (x86)/Git/bin/bash.exe \
+		$(subst \,/,$(LOCALAPPDATA))/Programs/Git/bin/bash.exe))
+	ifeq ($(GIT_BASH),)
+		$(error Git Bash not found. Install Git for Windows, or run make from a POSIX shell.)
+	endif
+	SHELL := $(GIT_BASH)
+else
+	SHELL := /bin/bash
+endif
+.SHELLFLAGS := -c
+
 .DEFAULT_GOAL := help
 
 BACKEND  := backend
@@ -24,12 +48,12 @@ PYTEST := $(UV) pytest
 
 .PHONY: help
 help: ## Show this list
-	@echo "Nasuru — available commands"
-	@echo
+	@echo "Nasuru - available commands"
+	@echo ""
 	@grep -hE '^[a-zA-Z0-9_.-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| sort \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
-	@echo
+	@echo ""
 
 # ---------------------------------------------------------------------------
 # Setup
@@ -62,7 +86,7 @@ install-frontend: ## Install Node dependencies
 .PHONY: env
 env: ## Write backend/.env with freshly generated keys (never overwrites)
 	@if [ -f $(BACKEND)/.env ]; then \
-		echo "backend/.env already exists — leaving it alone."; \
+		echo "backend/.env already exists - leaving it alone."; \
 	else \
 		cp $(BACKEND)/.env.example $(BACKEND)/.env && \
 		echo "Created backend/.env. Fill in DJANGO_SECRET_KEY and FIELD_ENCRYPTION_KEY:"; \
@@ -112,11 +136,11 @@ dev-frontend: ## Next.js development server on :3000
 	cd $(FRONTEND) && npm run dev
 
 .PHONY: worker
-worker: ## Celery worker — webhook processing and notifications
+worker: ## Celery worker - webhook processing and notifications
 	$(UV) celery -A config worker --loglevel=info
 
 .PHONY: beat
-beat: ## Celery beat — nightly reconciliation and nudges
+beat: ## Celery beat - nightly reconciliation and nudges
 	$(UV) celery -A config beat --loglevel=info
 
 .PHONY: migrate
@@ -145,7 +169,7 @@ shell: ## Django shell
 
 .PHONY: verify
 verify: check-backend check-frontend ## Everything CI runs
-	@echo
+	@echo ""
 	@echo "All checks passed."
 
 .PHONY: check-backend
@@ -158,7 +182,7 @@ check-frontend: contrast launch-check lint-frontend types test-frontend ## Front
 test: test-backend test-frontend ## Unit tests, both stacks
 
 .PHONY: test-backend
-test-backend: ## pytest — needs Postgres, so run `make infra` first
+test-backend: ## pytest - needs Postgres, so run `make infra` first
 	$(PYTEST)
 
 .PHONY: test-frontend
@@ -202,7 +226,7 @@ launch-check: ## Report policy clauses still awaiting a decision
 	cd $(FRONTEND) && npm run check:launch
 
 .PHONY: launch-gate
-launch-gate: ## Same, but FAILS if any remain — run before deploying
+launch-gate: ## Same, but FAILS if any remain - run before deploying
 	cd $(FRONTEND) && node scripts/check-launch-ready.mjs --strict
 
 .PHONY: build

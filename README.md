@@ -43,6 +43,12 @@ launch is expensive; before launch it is a deploy target.
 
 Every routine command is a Make target. `make` on its own lists them all.
 
+On Windows the targets run through Git Bash, which the Makefile locates by its
+real path — so `make` works the same from PowerShell, cmd or Git Bash. (It
+deliberately does not use whatever `bash` is on `PATH`: on most Windows machines
+that is WSL's bash, which cannot see `C:/Users/...` the way the rest of the
+toolchain does.)
+
 ```bash
 make env        # create backend/.env from the template
 make keys       # print a DJANGO_SECRET_KEY and FIELD_ENCRYPTION_KEY to paste in
