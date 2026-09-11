@@ -228,3 +228,33 @@ class TestTheManagementCommand:
         assert not PaymentGatewayConfig.objects.filter(
             gateway=Gateway.MOCK, is_active=True
         ).exists()
+
+
+@pytest.mark.django_db
+class TestTheApiAcceptsEveryRegisteredGateway:
+    """Guards a real 400 this project shipped.
+
+    `InitiatePaymentSerializer.gateway` was a hardcoded
+    ["paystack", "flutterwave"]. Adding the mock gateway made
+    /api/payments/gateways/ offer "mock" and /api/payments/initiate/ reject it
+    — the checkout page listed an option the API refused. Deriving the choices
+    from the model is the fix; this test is what stops it drifting back.
+    """
+
+    def test_the_serializer_accepts_every_gateway_the_model_knows(self):
+        from apps.payments.serializers import InitiatePaymentSerializer
+
+        accepted = set(InitiatePaymentSerializer().fields["gateway"].choices)
+        declared = {value for value, _ in Gateway.choices}
+
+        assert declared <= accepted, (
+            f"the checkout page can offer {declared - accepted}, "
+            "but the initiate endpoint would reject it"
+        )
+
+    def test_initiating_with_the_mock_gateway_named_is_accepted(self, student, mock_config):
+        """What the checkout page actually sends, since mock is the only option."""
+        payment, url = services.initiate_payment(student=student, gateway=Gateway.MOCK)
+
+        assert payment.gateway == Gateway.MOCK
+        assert url

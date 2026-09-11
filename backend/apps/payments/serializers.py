@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
-from .models import Payment, PaymentGatewayConfig, ReconciliationRun, Refund, WebhookEvent
+from .models import (
+    Gateway,
+    Payment,
+    PaymentGatewayConfig,
+    ReconciliationRun,
+    Refund,
+    WebhookEvent,
+)
 
 
 class GatewayOptionSerializer(serializers.ModelSerializer):
@@ -74,7 +81,14 @@ class StaffPaymentSerializer(PaymentSerializer):
 class InitiatePaymentSerializer(serializers.Serializer):
     """Note what is absent: an amount. The server decides what things cost."""
 
-    gateway = serializers.ChoiceField(choices=["paystack", "flutterwave"], required=False)
+    # Derived from the model, never hardcoded. This list was a literal
+    # ["paystack", "flutterwave"], so adding a gateway made the checkout page
+    # offer an option the API then rejected with a 400 — which is exactly what
+    # happened when the mock gateway was added. Whether a gateway can actually
+    # be used is decided by PaymentGatewayConfig.active_for(), not by this.
+    gateway = serializers.ChoiceField(
+        choices=[value for value, _ in Gateway.choices], required=False
+    )
     purpose = serializers.ChoiceField(choices=Payment.Purpose.choices, default=Payment.Purpose.ACCESS_FEE)
     application = serializers.UUIDField(required=False, allow_null=True)
     callback_url = serializers.URLField(required=False, allow_blank=True)
