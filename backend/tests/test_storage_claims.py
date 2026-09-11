@@ -115,3 +115,19 @@ def test_gateway_credentials_are_encrypted_at_rest(field):
         f"{field} must be an EncryptedTextField — a database dump should not "
         "hand over live gateway credentials."
     )
+
+
+def test_a_blank_endpoint_falls_back_to_the_account_endpoint(monkeypatch):
+    """`R2_ENDPOINT_URL=` on its own line must not mean "no endpoint".
+
+    django-environ returns "" for a present-but-blank variable, so a `default=`
+    never fires. Left unhandled, boto3 falls back to its AWS endpoint and the
+    uploads go nowhere near Cloudflare.
+    """
+    options = _r2_options(monkeypatch, R2_ENDPOINT_URL="")
+    assert options["endpoint_url"] == "https://abc123account.r2.cloudflarestorage.com"
+
+
+def test_an_explicit_endpoint_still_wins(monkeypatch):
+    options = _r2_options(monkeypatch, R2_ENDPOINT_URL="https://custom.example.com")
+    assert options["endpoint_url"] == "https://custom.example.com"

@@ -196,9 +196,13 @@ if env("USE_R2"):
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
             "bucket_name": env("R2_BUCKET_NAME"),
-            "endpoint_url": env(
-                "R2_ENDPOINT_URL",
-                default=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+            # `or` rather than a default=: django-environ returns "" for a
+            # variable that is present but blank, and `R2_ENDPOINT_URL=` on its
+            # own line is the normal way to leave it unset. Without this, an
+            # empty value silently fell through to boto3's AWS default endpoint.
+            "endpoint_url": (
+                env("R2_ENDPOINT_URL", default="")
+                or f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
             ),
             "access_key": env("R2_ACCESS_KEY_ID"),
             "secret_key": env("R2_SECRET_ACCESS_KEY"),

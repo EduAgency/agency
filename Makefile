@@ -155,6 +155,10 @@ migrations: ## Generate migrations for model changes
 seed: ## Load the demo dataset, including a clickable student
 	$(MANAGE) seed_demo --with-student
 
+.PHONY: storage-check
+storage-check: ## Verify R2 credentials with a real write/read/sign/delete round trip
+	$(MANAGE) check_storage $(ARGS)
+
 .PHONY: storage-report
 storage-report: ## Objects and bytes stored per student (ARGS=--orphans to verify files exist)
 	$(MANAGE) storage_report $(ARGS)
