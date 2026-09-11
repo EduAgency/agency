@@ -155,6 +155,10 @@ migrations: ## Generate migrations for model changes
 seed: ## Load the demo dataset, including a clickable student
 	$(MANAGE) seed_demo --with-student
 
+.PHONY: storage-report
+storage-report: ## Objects and bytes stored per student (ARGS=--orphans to verify files exist)
+	$(MANAGE) storage_report $(ARGS)
+
 .PHONY: mock-payments
 mock-payments: ## Approve payments without a gateway (dev only; --off to undo)
 	$(MANAGE) enable_mock_payments $(ARGS)

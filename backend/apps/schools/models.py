@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.core.models import ArchivableModel, BaseModel
+from apps.core.storage import school_logo_path
 
 
 class RequirementCategory(BaseModel):
@@ -69,7 +70,7 @@ class School(BaseModel, ArchivableModel):
     )
     city = models.CharField(max_length=100, blank=True)
     website = models.URLField(blank=True)
-    logo = models.ImageField(upload_to="schools/logos/", null=True, blank=True)
+    logo = models.ImageField(upload_to=school_logo_path, null=True, blank=True)
     description = models.TextField(blank=True)
 
     # Commercial terms — visible to staff only.

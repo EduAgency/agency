@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from apps.core.encryption import EncryptedTextField
 from apps.core.models import BaseModel
+from apps.core.storage import message_attachment_path
 
 
 class Channel(models.TextChoices):
@@ -141,7 +142,9 @@ class Message(BaseModel):
         on_delete=models.SET_NULL, related_name="sent_messages",
     )
     body = models.TextField()
-    attachment = models.FileField(upload_to="messages/%Y/%m/", null=True, blank=True, max_length=500)
+    attachment = models.FileField(
+        upload_to=message_attachment_path, null=True, blank=True, max_length=500
+    )
     is_internal_note = models.BooleanField(
         default=False, help_text="Staff-only note on the thread; never shown to the student."
     )

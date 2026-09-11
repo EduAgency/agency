@@ -6,13 +6,7 @@ from django.db import models, transaction
 from django.utils import timezone
 
 from apps.core.models import ArchivableModel, BaseModel
-
-
-def document_upload_path(instance, filename: str) -> str:
-    """Namespaced by student so an S3 prefix policy can be written per student,
-    and so an NDPR erasure request maps to one prefix to delete."""
-    student_id = instance.document.student_id
-    return f"documents/{student_id}/{instance.document_id}/v{instance.version}/{filename}"
+from apps.core.storage import document_upload_path
 
 
 class Application(BaseModel, ArchivableModel):
