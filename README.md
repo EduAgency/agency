@@ -19,7 +19,7 @@ Four engines wearing one UI. Everything else is a view on top of them.
 
 ## Stack
 
-- **Backend** — Django 5.2 LTS + DRF, PostgreSQL 17, Celery + Redis, S3-compatible storage
+- **Backend** — Django 5.2 LTS + DRF, PostgreSQL 17, Celery + Redis, Cloudflare R2 for documents
 - **Frontend** — Next.js 16 (App Router) + TypeScript + Tailwind
 - **Python 3.13** (pinned in `pyproject.toml`; matches the Docker image)
 

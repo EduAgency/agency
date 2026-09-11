@@ -31,7 +31,10 @@ dependencies = [
     # and Telegram Bot API notification channels.
     "requests==2.32.5",
 
-    # --- Storage ---
+    # --- Storage: Cloudflare R2 ---
+    # R2 exposes the S3 API, so these are how Django reaches it. There is no
+    # AWS dependency and no AWS account involved — the S3 protocol is simply
+    # what R2 speaks, and no non-S3 client for it exists.
     "django-storages[s3]==1.14.6",
     "boto3==1.40.24",
     "Pillow==11.3.0",                 # school logos / image uploads

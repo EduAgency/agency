@@ -16,7 +16,7 @@ env = environ.Env(
     DJANGO_DEBUG=(bool, False),
     DJANGO_ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     CORS_ALLOWED_ORIGINS=(list, ["http://localhost:3000"]),
-    USE_S3=(bool, False),
+    USE_R2=(bool, False),
     SENTRY_DSN=(str, ""),
     ENVIRONMENT=(str, "local"),
 )
@@ -158,28 +158,44 @@ STORAGES = {
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-if env("USE_S3"):
+if env("USE_R2"):
     # Student documents (passports, transcripts) never live on local disk in
-    # a deployed environment — plan §2.1.
+    # a deployed environment.
+    #
+    # Cloudflare R2. It speaks the S3 API — that is how any Django app talks to
+    # it — but it is not AWS S3, and three of the usual S3 settings are wrong
+    # here rather than merely unnecessary:
+    #
+    #   * No ACLs. R2 has no concept of them; buckets are private, and access is
+    #     granted by API token or a public bucket binding. Sending an ACL header
+    #     is rejected, so `default_acl` must stay None.
+    #   * No SSE header. R2 encrypts every object at rest with AES-256
+    #     automatically and does not accept `x-amz-server-side-encryption`.
+    #     The encryption claim on the landing page and in the privacy policy is
+    #     satisfied by the platform, not by a header we set.
+    #   * region_name is always "auto". R2 has no regions in the S3 sense;
+    #     where data physically sits is chosen by the bucket's jurisdiction and
+    #     location hint at creation time, not per request.
+    R2_ACCOUNT_ID = env("R2_ACCOUNT_ID")
     STORAGES["default"] = {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
-            "bucket_name": env("AWS_STORAGE_BUCKET_NAME"),
-            "region_name": env("AWS_S3_REGION_NAME", default="eu-west-1"),
-            "endpoint_url": env("AWS_S3_ENDPOINT_URL", default=None),
-            "access_key": env("AWS_ACCESS_KEY_ID", default=None),
-            "secret_key": env("AWS_SECRET_ACCESS_KEY", default=None),
-            "default_acl": "private",
+            "bucket_name": env("R2_BUCKET_NAME"),
+            "endpoint_url": env(
+                "R2_ENDPOINT_URL",
+                default=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+            ),
+            "access_key": env("R2_ACCESS_KEY_ID"),
+            "secret_key": env("R2_SECRET_ACCESS_KEY"),
+            "region_name": "auto",
+            "signature_version": "s3v4",
+            "default_acl": None,
             "querystring_auth": True,
             "querystring_expire": 900,  # signed URLs expire in 15 minutes
             "file_overwrite": False,
-            # Encryption at rest is stated publicly on the landing page and in
-            # the privacy policy, so it is requested explicitly rather than
-            # left to the bucket's default — a bucket created without a
-            # default encryption policy, or a non-AWS S3-compatible provider,
-            # would otherwise store passports and transcripts in the clear and
-            # make a published claim untrue.
-            "object_parameters": {"ServerSideEncryption": "AES256"},
+            # R2 charges no egress, but a document URL is still a capability:
+            # it is signed and short-lived, never a permanent public link.
+            "addressing_style": "virtual",
         },
     }
 

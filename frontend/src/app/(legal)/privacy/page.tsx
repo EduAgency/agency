@@ -128,10 +128,10 @@ export default function PrivacyPage() {
 
       <Clause heading="Where your documents are stored">
         <p>
-          Uploaded documents are held in private object storage. They are never publicly
-          addressable: each time a document is opened, the platform issues a signed link that stops
-          working after fifteen minutes. Files are encrypted at rest, and are not stored on the
-          application server&apos;s own disk.
+          Uploaded documents are held in private object storage at Cloudflare R2. They are never
+          publicly addressable: each time a document is opened, the platform issues a signed link
+          that stops working after fifteen minutes. Files are encrypted at rest with AES-256, and
+          are not stored on the application server&apos;s own disk.
         </p>
         <p>
           Payment gateway credentials are encrypted in the database with a key held outside it, so a

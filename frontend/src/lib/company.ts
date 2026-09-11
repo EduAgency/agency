@@ -102,10 +102,13 @@ export const RETENTION = [
  * Third parties who process data on our behalf. The NDPR requires these to be
  * disclosed, including any transfer outside Nigeria.
  *
- * Only the ones the codebase actually integrates are named. Hosting, object
- * storage and messaging are deployment choices that have not been made, so they
- * are PENDING rather than guessed at — naming the wrong processor in a
- * published policy is worse than admitting the list is incomplete.
+ * Only the ones the codebase actually integrates are named. Hosting and the
+ * email/messaging provider are deployment choices nobody has made, so they are
+ * PENDING rather than guessed at — naming the wrong processor in a published
+ * policy is worse than admitting the list is incomplete.
+ *
+ * Cloudflare R2 is named because the code targets it specifically, but *where*
+ * its bucket lives is a creation-time choice that is still open.
  */
 export const SUB_PROCESSORS = [
   { name: "Paystack", purpose: "Card and bank payments", location: "Nigeria" },
@@ -117,15 +120,22 @@ export const SUB_PROCESSORS = [
     location: `${PENDING} region`,
   },
   {
-    name: `${PENDING} object storage provider`,
+    name: "Cloudflare R2",
     purpose: "Storing your uploaded documents",
-    location: `${PENDING} region — see AWS_S3_REGION_NAME`,
+    // R2 places data by the bucket's jurisdiction, chosen at creation — not
+    // per request. Until that choice is made and recorded, saying where the
+    // documents live would be a guess, and this is the clause the NDPR cares
+    // most about. See R2_ACCOUNT_ID in backend/.env.example.
+    location: `${PENDING} jurisdiction`,
   },
   {
-    name: `${PENDING} email and SMS provider`,
+    name: `${PENDING} email provider`,
     purpose: "Sending you updates about your application",
     location: `${PENDING} region`,
   },
+  // Only reached for students who connect them; see the preference centre.
+  { name: "Meta (WhatsApp Business)", purpose: "Optional WhatsApp updates", location: "United States" },
+  { name: "Telegram", purpose: "Optional Telegram updates", location: "United Arab Emirates" },
 ] as const;
 
 export function formattedAddress(): string {
