@@ -507,7 +507,7 @@ page and measuring it caught it.
 | **MFA** | ✅ TOTP + 10 recovery codes, mandatory for staff. 23 tests |
 | **Throttling** | ✅ `UserRateThrottle` + `AnonRateThrottle` now floor the ~79 endpoints that declared no scope; MFA verification capped at 10/hour |
 | **Session management** | ❌ No device list, no remote revoke, no "sign out everywhere" |
-| **Notification preferences** | ❌ No per-channel opt-out. Still an NDPR exposure: unsolicited SMS to Nigerian numbers with no unsubscribe |
+| **Notification preferences** | ✅ Email + WhatsApp + Telegram, per category, with quiet hours. **SMS removed entirely.** 22 tests |
 | **NDPR data rights** | ❌ `erase_student` exists server-side but there is no self-service export or deletion request flow. The privacy policy's 30-day commitment still rests on a person reading an inbox |
 | **SSO / SCIM** | ❌ Deliberately deferred — see below |
 | **Accessibility statement** | ❌ Not written, though the evidence for it now exists |
@@ -537,7 +537,41 @@ against, and nothing can be verified without one. It is also demand-driven: it m
 partner institution requires directory-managed accounts, and not before. Building it untested,
 ahead of that, would be the worst of both.
 
-**Remaining order of value.** Notification preferences first — it is the only outstanding item
-that is a live compliance exposure rather than a missing capability. Then NDPR self-service,
-which would let the privacy policy's 30-day commitment rest on code instead of a person. Then
-session management. The accessibility statement is an afternoon and can go whenever.
+**On notification channels.** SMS is gone. It is the most expensive per message, the least
+rich, the easiest to spoof, and locally the one most associated with scams — the opposite of
+what a product for wary students should signal. WhatsApp and Telegram reach the same people,
+carry formatting and links, and confirm delivery.
+
+Routing is the intersection of four conditions, and all four must agree:
+
+1. **The agency has the channel enabled *and* configured.** A toggle that silently does nothing
+   is worse than no toggle: the student opts in, stops watching email, and misses a rejection.
+   `ChannelConfig.is_live` is enabled-and-configured, and the admin shows both separately
+   because they come apart constantly.
+2. **The user opted in** for that category on that channel.
+3. **The user is reachable there** — a linked Telegram chat, a WhatsApp number with a *recorded*
+   opt-in. Holding somebody's number is not permission; WhatsApp's own policy requires evidenced
+   consent before the first message.
+4. **It is not quiet hours.**
+
+One override beats all four: security and payment mail always sends. A password reset a
+preference swallowed is a lockout, not a preference honoured — the API refuses to record that
+choice at all. And every notification writes an `in_app` row regardless, which is the inbox and
+the answer when somebody says they were never told.
+
+**Telegram linking** works the only way it can: a bot cannot open a conversation, so the app
+mints a short-lived token, deep-links to `t.me`, and the webhook matches the returning chat to
+the account. That webhook is unauthenticated by necessity, so it carries a secret path segment
+checked against the configured verify token.
+
+**A serious flaw in the e2e setup surfaced during this work.** Playwright's
+`reuseExistingServer` adopts whatever is already listening on the port — and on this machine
+3000 and 3100 were both taken by unrelated services. The suite ran **32 "passing" accessibility
+scans against a Grafana login page** before the skip-link test happened to notice. It now always
+starts its own server on a port of its own and fails loudly if that port is busy. Scans also run
+with reduced motion, so a contrast check cannot land mid-transition — that was an intermittent
+failure on the checklist progress bar.
+
+**Remaining order of value.** NDPR self-service next, which would let the privacy policy's
+30-day commitment rest on code instead of a person reading an inbox. Then session management.
+The accessibility statement is an afternoon and can go whenever.
