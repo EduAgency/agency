@@ -1,0 +1,84 @@
+[project]
+name = "nasuru-backend"
+version = "0.1.0"
+description = "Lead intake, onboarding, document checklists, payments and referrals for an international student recruitment agency."
+requires-python = "==3.13.*"
+
+# Pinned exactly, and resolved into uv.lock. The lock file is what CI and the
+# Docker build install from, so a deploy cannot pick up a different transitive
+# dependency from the one that was tested.
+dependencies = [
+    # --- Core ---
+    "Django==5.2.6",
+    "djangorestframework==3.16.1",
+    "django-environ==0.12.0",
+    "psycopg[binary]==3.2.9",
+    "django-cors-headers==4.7.0",
+
+    # --- Auth ---
+    "djangorestframework-simplejwt==5.5.1",
+    "django-otp==1.6.1",              # TOTP for staff and the Django admin
+    "qrcode==8.2",                    # TOTP enrolment QR codes
+
+    # --- Async / queue ---
+    "celery==5.5.3",
+    "redis==6.4.0",
+    "django-celery-beat==2.8.1",      # periodic reconciliation jobs
+    "django-celery-results==2.6.0",
+
+    # --- HTTP ---
+    # Gateway API calls (Paystack / Flutterwave), and the WhatsApp Cloud API
+    # and Telegram Bot API notification channels.
+    "requests==2.32.5",
+
+    # --- Storage ---
+    "django-storages[s3]==1.14.6",
+    "boto3==1.40.24",
+    "Pillow==11.3.0",                 # school logos / image uploads
+
+    # --- Security / ops ---
+    "cryptography==45.0.6",           # gateway key encryption at rest
+    "django-ratelimit==4.1.0",
+    "django-filter==25.1",
+    "drf-spectacular==0.28.0",        # OpenAPI schema for the Next.js client
+    "gunicorn==23.0.0",
+    "whitenoise==6.9.0",
+    "sentry-sdk==2.35.0",
+]
+
+[dependency-groups]
+# Installed by `uv sync` locally, excluded from the image by `--no-dev`.
+dev = [
+    "pytest==8.4.1",
+    "pytest-django==4.11.1",
+    "factory-boy==3.3.3",
+    "ruff==0.12.11",
+]
+
+# There is no package to build here — this is an application, not a library —
+# so uv is told not to try.
+[tool.uv]
+package = false
+
+# ---------------------------------------------------------------------------
+# Tooling. Kept here rather than in ruff.toml and pytest.ini so there is one
+# file to look in for how this project is configured.
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+# UP038: isinstance((int, float)) is idiomatic and reads better than a union here.
+ignore = ["E501", "B008", "UP038"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*" = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py"]
+addopts = "-q --strict-markers --reuse-db"
+testpaths = ["tests"]

@@ -1,32 +1,26 @@
 # Nasuru — one entry point for every routine command.
 #
-# Python packages are managed with uv; Node with npm. Nothing here needs a
-# manually activated virtualenv — every backend target goes through .venv
-# directly, so `make test` works from a cold shell.
+# Python is a uv project: dependencies, dev group and tool config all live in
+# backend/pyproject.toml, resolved into backend/uv.lock. Node is npm.
 #
 #   make            list every target
 #   make setup      install both stacks and start the infrastructure
 #   make verify     everything CI runs
 #
-# Windows note: the venv puts binaries in Scripts/, POSIX puts them in bin/.
-# The detection below keeps a single Makefile working on both.
+# `uv run` creates and syncs the environment on demand, so nothing here needs a
+# virtualenv activated — or even created — first, and there is no Windows/POSIX
+# venv path to detect.
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 BACKEND  := backend
 FRONTEND := frontend
-VENV     := $(BACKEND)/.venv
 
-ifeq ($(OS),Windows_NT)
-	PY := $(VENV)/Scripts/python.exe
-else
-	PY := $(VENV)/bin/python
-endif
-
-# Every backend command runs from backend/ with that venv's interpreter.
-MANAGE := cd $(BACKEND) && ../$(PY) manage.py
-PYTEST := cd $(BACKEND) && ../$(PY) -m pytest
+# Every backend command runs through uv, from backend/.
+UV     := cd $(BACKEND) && uv run
+MANAGE := $(UV) python manage.py
+PYTEST := $(UV) pytest
 
 .PHONY: help
 help: ## Show this list
@@ -49,9 +43,17 @@ setup: infra install migrate ## Full first-run setup: infra, dependencies, migra
 install: install-backend install-frontend ## Install both stacks
 
 .PHONY: install-backend
-install-backend: ## Create the venv and install Python dependencies with uv
-	@test -d $(VENV) || uv venv --python 3.13 $(VENV)
-	uv pip install --python $(PY) -r $(BACKEND)/requirements.txt
+install-backend: ## Sync the Python environment from uv.lock
+	cd $(BACKEND) && uv sync
+
+.PHONY: lock
+lock: ## Re-resolve uv.lock after editing pyproject.toml
+	cd $(BACKEND) && uv lock
+
+.PHONY: add
+add: ## Add a dependency: make add PKG=name  (PKG="name --dev" for dev group)
+	@test -n "$(PKG)" || (echo "Usage: make add PKG=package-name" && exit 1)
+	cd $(BACKEND) && uv add $(PKG)
 
 .PHONY: install-frontend
 install-frontend: ## Install Node dependencies
@@ -69,8 +71,8 @@ env: ## Write backend/.env with freshly generated keys (never overwrites)
 
 .PHONY: keys
 keys: ## Print a fresh DJANGO_SECRET_KEY and FIELD_ENCRYPTION_KEY
-	@$(PY) -c "import secrets; print('DJANGO_SECRET_KEY=' + secrets.token_urlsafe(50))"
-	@$(PY) -c "from cryptography.fernet import Fernet; print('FIELD_ENCRYPTION_KEY=' + Fernet.generate_key().decode())"
+	@$(UV) python -c "import secrets; print('DJANGO_SECRET_KEY=' + secrets.token_urlsafe(50))"
+	@$(UV) python -c "from cryptography.fernet import Fernet; print('FIELD_ENCRYPTION_KEY=' + Fernet.generate_key().decode())"
 
 # ---------------------------------------------------------------------------
 # Infrastructure
@@ -111,11 +113,11 @@ dev-frontend: ## Next.js development server on :3000
 
 .PHONY: worker
 worker: ## Celery worker — webhook processing and notifications
-	cd $(BACKEND) && ../$(PY) -m celery -A config worker --loglevel=info
+	$(UV) celery -A config worker --loglevel=info
 
 .PHONY: beat
 beat: ## Celery beat — nightly reconciliation and nudges
-	cd $(BACKEND) && ../$(PY) -m celery -A config beat --loglevel=info
+	$(UV) celery -A config beat --loglevel=info
 
 .PHONY: migrate
 migrate: ## Apply database migrations
@@ -176,7 +178,7 @@ lint: lint-backend lint-frontend ## Lint both stacks
 
 .PHONY: lint-backend
 lint-backend: ## ruff
-	cd $(BACKEND) && ../$(PY) -m ruff check .
+	$(UV) ruff check .
 
 .PHONY: lint-frontend
 lint-frontend: ## eslint, including jsx-a11y at error level
@@ -188,7 +190,7 @@ types: ## TypeScript, no emit
 
 .PHONY: format
 format: ## Apply ruff and prettier
-	cd $(BACKEND) && ../$(PY) -m ruff check --fix .
+	$(UV) ruff check --fix .
 	cd $(FRONTEND) && npm run format
 
 .PHONY: contrast
@@ -211,3 +213,4 @@ build: ## Production build of the frontend
 clean: ## Remove build output and test artefacts
 	rm -rf $(FRONTEND)/.next $(FRONTEND)/test-results $(FRONTEND)/playwright-report
 	find $(BACKEND) -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
+	rm -rf $(BACKEND)/.ruff_cache

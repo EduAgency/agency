@@ -21,7 +21,7 @@ Four engines wearing one UI. Everything else is a view on top of them.
 
 - **Backend** — Django 5.2 LTS + DRF, PostgreSQL 17, Celery + Redis, S3-compatible storage
 - **Frontend** — Next.js 16 (App Router) + TypeScript + Tailwind
-- **Python 3.13** (pinned; matches the Docker image)
+- **Python 3.13** (pinned in `pyproject.toml`; matches the Docker image)
 
 ### Why the backend is not on Vercel
 
@@ -58,8 +58,20 @@ make dev-backend    # Django on :8010
 make dev-frontend   # Next.js on :3000
 ```
 
-Python dependencies are managed with **uv**; `make install-backend` creates the
-venv and installs into it, so no virtualenv needs activating by hand.
+The backend is a **uv project**: dependencies, the dev group and the ruff and
+pytest configuration all live in `backend/pyproject.toml`, resolved into
+`backend/uv.lock`. Every Make target runs through `uv run`, which syncs the
+environment on demand — nothing needs a virtualenv activated, or even created,
+first.
+
+```bash
+make add PKG=some-package          # add a dependency
+make add PKG="pytest-cov --dev"    # ...to the dev group
+make lock                          # re-resolve after editing pyproject.toml
+```
+
+The Docker image installs from the lock with `uv sync --locked --no-dev`, so a
+deploy gets exactly the versions that were tested and none of the test tooling.
 
 | Service | URL |
 |---|---|

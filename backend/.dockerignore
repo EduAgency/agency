@@ -1,0 +1,23 @@
+# The host virtualenv is Windows-built and would shadow the image's own.
+.venv/
+venv/
+
+# Secrets never enter an image.
+.env
+.env.*
+!.env.example
+
+# Local databases and caches.
+*.sqlite3
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# Local uploads — the deployed app uses S3.
+media/
+staticfiles/
+
+.git/
+.gitignore
