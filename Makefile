@@ -155,6 +155,10 @@ migrations: ## Generate migrations for model changes
 seed: ## Load the demo dataset, including a clickable student
 	$(MANAGE) seed_demo --with-student
 
+.PHONY: mock-payments
+mock-payments: ## Approve payments without a gateway (dev only; --off to undo)
+	$(MANAGE) enable_mock_payments $(ARGS)
+
 .PHONY: superuser
 superuser: ## Create an admin account
 	$(MANAGE) createsuperuser

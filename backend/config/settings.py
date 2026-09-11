@@ -9,6 +9,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -145,6 +146,20 @@ USE_I18N = True
 USE_TZ = True
 
 DEFAULT_CURRENCY = "NGN"
+
+# Approve payments without contacting a gateway, so the app can be demonstrated
+# and developed without live keys. See apps/payments/gateways/mock.py — this
+# flag alone is not enough: the adapter also requires DEBUG and a non-production
+# ENVIRONMENT, and refuses to construct otherwise.
+PAYMENTS_MOCK_MODE = env.bool("PAYMENTS_MOCK_MODE", default=False)
+
+if PAYMENTS_MOCK_MODE and (ENVIRONMENT == "production" or not DEBUG):
+    # Fail at startup rather than at the first payment. A misconfigured deploy
+    # that silently gave everyone free access would be discovered from the
+    # revenue, eventually.
+    raise ImproperlyConfigured(
+        "PAYMENTS_MOCK_MODE cannot be enabled with ENVIRONMENT=production or DEBUG=False."
+    )
 
 # --------------------------------------------------------------------------
 # Static & media

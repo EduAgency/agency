@@ -88,9 +88,16 @@ class BaseGateway(abc.ABC):
 
 def get_gateway(config) -> BaseGateway:
     from .flutterwave import FlutterwaveGateway
+    from .mock import MockGateway
     from .paystack import PaystackGateway
 
-    adapters = {"paystack": PaystackGateway, "flutterwave": FlutterwaveGateway}
+    # MockGateway refuses to construct outside a development configuration, so
+    # registering it here cannot make it reachable in production.
+    adapters = {
+        "paystack": PaystackGateway,
+        "flutterwave": FlutterwaveGateway,
+        "mock": MockGateway,
+    }
     try:
         return adapters[config.gateway](config)
     except KeyError as exc:

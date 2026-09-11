@@ -70,8 +70,18 @@ def initiate_payment(
                 "An administrator must enable one in Payments → Gateway configuration."
             )
 
-    if purpose == Payment.Purpose.ACCESS_FEE and student.has_platform_access:
-        raise ValidationError("This account already has platform access.")
+    if purpose == Payment.Purpose.ACCESS_FEE:
+        # Read the flag from the database rather than the passed-in instance.
+        # This is the check that stops a student being charged twice, and an
+        # in-memory StudentProfile can be stale — `grant_platform_access`
+        # updates the row through its own `select_for_update` fetch, so a
+        # caller holding an older copy would see False and start a second
+        # payment. Real money; a single existence query is cheap insurance.
+        already_paid = type(student)._default_manager.filter(
+            pk=student.pk, has_platform_access=True
+        ).exists()
+        if already_paid:
+            raise ValidationError("This account already has platform access.")
 
     # Reuse a still-pending attempt rather than littering the table each time a
     # student reopens the checkout page.

@@ -14,6 +14,9 @@ class Gateway(models.TextChoices):
     PAYSTACK = "paystack", "Paystack"
     FLUTTERWAVE = "flutterwave", "Flutterwave"
     MANUAL = "manual", "Manual / bank transfer"
+    # Development and demo only. The adapter refuses to load unless DEBUG is on,
+    # ENVIRONMENT is not production, and PAYMENTS_MOCK_MODE is explicitly set.
+    MOCK = "mock", "Mock (no money moves)"
 
 
 class PaymentGatewayConfig(BaseModel):
