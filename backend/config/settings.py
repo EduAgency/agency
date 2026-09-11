@@ -133,6 +133,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# Shown in the user's authenticator app beside the account name.
+MFA_ISSUER_NAME = env("MFA_ISSUER_NAME", default="Nasuru")
+
 # --------------------------------------------------------------------------
 # I18N — Nigeria-based operation
 # --------------------------------------------------------------------------
@@ -206,12 +209,24 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "apps.core.exceptions.exception_handler",
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.ScopedRateThrottle",
+        # Scoped throttles only cover views that declare a scope, which left
+        # roughly 79 endpoints unlimited. These two are the floor under
+        # everything (docs/enterprise-readiness.md §C, "Rate limiting").
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
         "signup": "5/hour",
         "login": "10/hour",
         "password_reset": "5/hour",
         "upload": "60/hour",
+        # Brute-forcing a 6-digit code is only expensive if the attempts are
+        # capped; 10/hour makes the search space unusable.
+        "mfa": "10/hour",
+        # A blanket ceiling for everything else. Generous enough that no real
+        # session notices, low enough that scripted enumeration does.
+        "user": "1000/hour",
+        "anon": "100/hour",
     },
 }
 

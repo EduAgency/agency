@@ -56,6 +56,13 @@ auth_patterns = [
     path("password/reset/", accounts_views.PasswordResetRequestView.as_view(), name="password-reset"),
     path("password/reset/confirm/", accounts_views.PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
     path("password/change/", accounts_views.PasswordChangeView.as_view(), name="password-change"),
+
+    # Two-factor authentication.
+    path("mfa/", accounts_views.MfaStatusView.as_view(), name="mfa-status"),
+    path("mfa/enrol/", accounts_views.MfaEnrolView.as_view(), name="mfa-enrol"),
+    path("mfa/confirm/", accounts_views.MfaConfirmView.as_view(), name="mfa-confirm"),
+    path("mfa/recovery-codes/", accounts_views.MfaRecoveryCodesView.as_view(), name="mfa-recovery-codes"),
+    path("mfa/disable/", accounts_views.MfaDisableView.as_view(), name="mfa-disable"),
     path("me/", accounts_views.MeView.as_view(), name="me"),
 ]
 

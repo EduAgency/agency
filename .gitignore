@@ -34,3 +34,6 @@ backend/media/documents/
 .DS_Store
 .idea/
 *.swp
+
+# Local SQLite, used when Docker is not running
+*.sqlite3

@@ -121,6 +121,9 @@ def _client_ip(request):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+    # Optional so the first request can be email + password alone; the view
+    # answers with mfa_required and the client asks again with a code.
+    otp = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
     def validate(self, attrs):
         user = authenticate(
@@ -164,3 +167,18 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def validate_new_password(self, value):
         validate_password(value)
         return value
+
+
+# --- Two-factor authentication ---------------------------------------------
+
+
+class MfaCodeSerializer(serializers.Serializer):
+    """A 6-digit authenticator code, or a recovery code."""
+
+    code = serializers.CharField(max_length=20)
+
+
+class MfaStatusSerializer(serializers.Serializer):
+    enabled = serializers.BooleanField()
+    required = serializers.BooleanField()
+    recovery_codes_remaining = serializers.IntegerField()

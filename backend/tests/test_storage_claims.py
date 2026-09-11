@@ -17,7 +17,6 @@ from __future__ import annotations
 import importlib
 
 import pytest
-from django.test import override_settings
 
 
 def _s3_options(monkeypatch, **env):

@@ -9,11 +9,14 @@ from rest_framework.viewsets import ModelViewSet
 
 from apps.core import audit
 
+from . import mfa
 from .models import EmailVerificationToken, StudentProfile, User
 from .permissions import HasAdminPermission
 from .serializers import (
     AdminProfileSerializer,
     LoginSerializer,
+    MfaCodeSerializer,
+    MfaStatusSerializer,
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
@@ -58,6 +61,32 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
+
+        # Second factor, checked only once the password is already correct — so
+        # this never reveals whether an account exists or has MFA switched on.
+        if mfa.has_mfa(user):
+            code = serializer.validated_data.get("otp", "")
+            if not code:
+                return Response(
+                    {
+                        "detail": "Enter the code from your authenticator app.",
+                        "code": "mfa_required",
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+            if not mfa.verify(user, code):
+                audit.record("mfa_failed", target=user, actor=user)
+                return Response(
+                    {
+                        "detail": "That code is not right or has already been used.",
+                        "code": "mfa_invalid",
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+        elif mfa.is_required_for(user):
+            # A staff account with no second factor can still sign in, but only
+            # to reach the enrolment screen. The permission class does the rest.
+            audit.record("mfa_missing_on_staff_login", target=user, actor=user)
 
         user.last_login = timezone.now()
         user.last_login_ip = _client_ip(request)
@@ -228,3 +257,110 @@ class AdminStudentViewSet(ModelViewSet):
             )
         result = erase_student(self.get_object(), user=request.user, reason=reason)
         return Response(result)
+
+
+# ---------------------------------------------------------------------------
+# Two-factor authentication
+# ---------------------------------------------------------------------------
+
+
+class MfaStatusView(APIView):
+    """What this account's second factor looks like right now."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: MfaStatusSerializer})
+    def get(self, request):
+        return Response(
+            {
+                "enabled": mfa.has_mfa(request.user),
+                "required": mfa.is_required_for(request.user),
+                "recovery_codes_remaining": mfa.unused_recovery_code_count(request.user),
+            }
+        )
+
+
+class MfaEnrolView(APIView):
+    """Step one: hand back a secret for the authenticator app.
+
+    Nothing is switched on here. The device stays unconfirmed until the user
+    proves they can generate a code from it, so a mistyped secret is caught now
+    rather than at the next sign-in.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "mfa"
+
+    @extend_schema(request=None, responses={200: OpenApiResponse(description="Enrolment secret.")})
+    def post(self, request):
+        try:
+            return Response(mfa.begin_enrolment(request.user))
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MfaConfirmView(APIView):
+    """Step two: verify the first code, then return the recovery codes once."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "mfa"
+
+    @extend_schema(
+        request=MfaCodeSerializer,
+        responses={200: OpenApiResponse(description="Recovery codes, shown once.")},
+    )
+    def post(self, request):
+        serializer = MfaCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            codes = mfa.confirm_enrolment(request.user, serializer.validated_data["code"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"recovery_codes": codes})
+
+
+class MfaRecoveryCodesView(APIView):
+    """Mint a fresh set, invalidating the old one. Requires a current code."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "mfa"
+
+    @extend_schema(request=MfaCodeSerializer, responses={200: OpenApiResponse(description="New codes.")})
+    def post(self, request):
+        serializer = MfaCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if not mfa.has_mfa(request.user):
+            return Response(
+                {"detail": "Two-factor authentication is not switched on."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not mfa.verify(request.user, serializer.validated_data["code"]):
+            return Response({"detail": "That code is not right."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"recovery_codes": mfa.regenerate_recovery_codes(request.user)})
+
+
+class MfaDisableView(APIView):
+    """Switch MFA off. Requires a current code, and staff may not."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "mfa"
+
+    @extend_schema(request=MfaCodeSerializer, responses={200: OpenApiResponse(description="Disabled.")})
+    def post(self, request):
+        serializer = MfaCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if mfa.is_required_for(request.user):
+            # Otherwise the requirement is advisory: anyone could turn it off
+            # the moment it became inconvenient.
+            return Response(
+                {"detail": "Staff accounts must keep two-factor authentication switched on."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if not mfa.has_mfa(request.user):
+            return Response({"detail": "It is already off."}, status=status.HTTP_400_BAD_REQUEST)
+        if not mfa.verify(request.user, serializer.validated_data["code"]):
+            return Response({"detail": "That code is not right."}, status=status.HTTP_400_BAD_REQUEST)
+
+        mfa.disable(request.user)
+        return Response({"detail": "Two-factor authentication is off."})

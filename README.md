@@ -41,33 +41,30 @@ launch is expensive; before launch it is a deploy target.
 
 ## Local setup
 
+Every routine command is a Make target. `make` on its own lists them all.
+
 ```bash
-# 1. Infrastructure (host ports are offset to avoid clashing with other stacks)
-docker compose up -d db redis
-
-# 2. Backend
-cd backend
-uv venv --python 3.13 .venv
-VIRTUAL_ENV=.venv uv pip install -r requirements.txt
-cp .env.example .env          # then fill in the two generated values below
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"   # FIELD_ENCRYPTION_KEY
-python -c "import secrets; print(secrets.token_urlsafe(50))"                                # DJANGO_SECRET_KEY
-
-.venv/bin/python manage.py migrate
-.venv/bin/python manage.py seed_demo --with-student
-.venv/bin/python manage.py createsuperuser
-.venv/bin/python manage.py runserver 8010
-
-# 3. Frontend
-cd ../frontend
-npm install
-cp .env.local.example .env.local
-npm run dev                   # http://localhost:3000
+make env        # create backend/.env from the template
+make keys       # print a DJANGO_SECRET_KEY and FIELD_ENCRYPTION_KEY to paste in
+make setup      # docker infra + both dependency stacks + migrations
+make seed       # demo data, including a student you can sign in as
+make superuser  # an admin account
 ```
+
+Then, in separate terminals:
+
+```bash
+make dev-backend    # Django on :8010
+make dev-frontend   # Next.js on :3000
+```
+
+Python dependencies are managed with **uv**; `make install-backend` creates the
+venv and installs into it, so no virtualenv needs activating by hand.
 
 | Service | URL |
 |---|---|
 | Admin (the agency's daily workspace) | http://localhost:8010/admin/ |
+| Staff console | http://localhost:3000/staff/review |
 | API docs (OpenAPI) | http://localhost:8010/api/docs/ |
 | Health check | http://localhost:8010/health/ |
 | Frontend | http://localhost:3000 |
@@ -79,26 +76,33 @@ the referral reward rules — so the model can be clicked through immediately.
 ### Background workers
 
 ```bash
-celery -A config worker --loglevel=info      # webhook processing, notifications
-celery -A config beat   --loglevel=info      # nightly reconciliation, nudges
+make worker     # webhook processing, notifications
+make beat       # nightly reconciliation, nudges
 ```
 
 Or `docker compose up` for the whole stack.
 
-### Tests
+### Checks
 
 ```bash
-cd backend && .venv/bin/python -m pytest        # 87 tests
-cd backend && .venv/bin/ruff check .
-cd frontend && npx tsc --noEmit && npm run build
+make verify     # lint + types + unit tests, both stacks
+make test       # pytest (needs `make infra`) and vitest
+make e2e        # Playwright + axe across public, student and staff routes
+make contrast   # every design token pair against its WCAG threshold
+make launch-gate  # fails while any policy clause still awaits a decision
 ```
 
-The backend suite covers the four engines' invariants specifically: schema
-validation, form versioning, checklist snapshot isolation, progress
-calculation, webhook signature/idempotency, and referral fraud handling — plus
-the API permission boundaries (a student cannot reach another student's
-records; a document reviewer cannot reach gateway credentials) and the full
-signup → pay → apply → upload → review journey.
+The backend suite (123 tests) covers the four engines' invariants specifically:
+schema validation, form versioning, checklist snapshot isolation, progress
+calculation, webhook signature/idempotency, referral fraud handling, and
+two-factor enrolment, replay and recovery — plus the API permission boundaries
+(a student cannot reach another student's records; a document reviewer cannot
+reach gateway credentials) and the full signup → pay → apply → upload → review
+journey.
+
+The frontend suite is 17 unit tests and 152 Playwright + axe tests, scanning
+every route in both colour schemes and both viewports. See
+[docs/enterprise-readiness.md](docs/enterprise-readiness.md).
 
 Before deploying, confirm the production posture is clean:
 
