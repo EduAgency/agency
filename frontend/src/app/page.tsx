@@ -1,60 +1,76 @@
 import Link from "next/link";
 import { StudentJourney } from "@/components/StudentJourney";
-import { ACCESS_FEE, COMPANY, CONTACT, REFUND, formattedAddress } from "@/lib/company";
+import {
+  ACCESS_FEE,
+  ACCREDITATION,
+  COMPANY,
+  CONTACT,
+  DESTINATIONS,
+  REFUND,
+  formattedAddress,
+  isPending,
+} from "@/lib/company";
 
 /**
  * Landing page.
  *
- * The stance from the first version is unchanged and deliberate (plan §9): the
- * fee is on the page rather than revealed at checkout, there are no countdown
- * timers or "limited slots" prompts, and no social proof is claimed until there
- * are real placements to name. The audience is students and parents already
- * wary of scams — pressure tactics cost more trust than they buy clicks.
+ * Positioning: an international education agent, certified for the UK, working
+ * with students anywhere in Nigeria. The certification is the strongest thing
+ * on the page and so gets the most careful handling — see the credential block
+ * below, which renders an honest "pending" state rather than an unverifiable
+ * badge until the real certificate details are in `lib/company.ts`.
  *
- * What changed is that looking under-built was costing trust too. A page that
- * reads as unfinished is its own kind of warning sign to this audience, so the
- * argument is now carried by the product itself: the checklist a student
- * actually gets is shown on the page, with a real rejection reason in it.
- *
- * Anything that would be a claim we cannot evidence is a [BRACKETED]
- * placeholder rather than a number someone invented.
+ * The stance from earlier versions is unchanged (plan §9): the fee is stated
+ * before signup rather than revealed at checkout, there are no countdown
+ * timers or invented placement counts, and the limits of what an agent can
+ * promise are on the front page. This audience has usually been burned by
+ * someone who did neither.
  */
 
 const CHECKLIST_CATEGORIES = [
   {
     name: "Documents & transcripts",
-    detail:
-      "Passport bio-data page, WAEC/NECO, a university transcript covering every completed semester, CV, certified translations.",
+    detail: "Passport, WAEC/NECO, transcripts covering every completed semester, CV, translations.",
   },
   {
     name: "English proof",
     detail:
-      "IELTS 6.0–6.5 overall is the usual target. Policies differ by school — we confirm yours in writing before you book a test.",
+      "IELTS, TOEFL or a UKVI-approved test. Which one counts depends on the country and the course — we confirm yours in writing before you book.",
   },
   {
-    name: "German language",
-    detail:
-      "A2 is the admission minimum. B1 before you travel is what makes the first year survivable.",
+    name: "Other languages",
+    detail: "German, French or another language of instruction, where the country asks for it.",
   },
   {
     name: "Application forms",
-    detail:
-      "uni-assist account and entries — every prior institution, each with its own transcript. Motivation letter. Submitted early in the window, not at the deadline.",
+    detail: "University portals, UCAS or uni-assist, and the personal statement that goes with them.",
   },
   {
-    name: "Financial",
+    name: "Financial evidence",
     detail:
-      "A blocked account covering one year of living costs. The step that most often decides whether the visa happens.",
+      "Bank statements, sponsorship letters, a blocked account. The rules on how long money must be held differ by country and catch people out.",
   },
   {
     name: "Visa & relocation",
-    detail: "Admission letter, health insurance, a registered address, the appointment booked.",
+    detail: "Visa file, health surcharge, TB test where required, insurance, accommodation.",
   },
   {
     name: "Spouse & family",
     detail:
-      "Marriage certificate with a certified translation, and your spouse's own document set. A parallel application with its own timeline.",
+      "Dependant applications, with their own documents and their own timeline. Most agents treat this as an afterthought.",
   },
+];
+
+/** What the one-time fee actually buys, in the order a student meets it. */
+const FEE_INCLUDES = [
+  "Every international school open to Nigerian students, with the entry requirements each one really asks for — not a shortlist of whoever pays us commission",
+  "A shortlist matched to your grades, your degree and what you can genuinely fund",
+  "Your document checklist for each application, built from that university’s own requirement set",
+  "Document review with written feedback on anything that needs redoing",
+  "Tracking across every application, so you always know what is waiting on whom",
+  "The visa file — financial evidence, health checks, insurance, accommodation",
+  "Pre-departure and arrival: what to carry, what to register for, what to do in your first week",
+  "A counsellor you can reach on WhatsApp, Telegram or email throughout",
 ];
 
 const NOT_INCLUDED = [
@@ -66,34 +82,38 @@ const NOT_INCLUDED = [
   {
     claim: "“Guaranteed visa.”",
     truth:
-      "The embassy decides. No agency influences that, and any that says otherwise is selling you something else.",
+      "The embassy decides. No agent influences that, and any that says otherwise is selling you something else.",
   },
   {
     claim: "“Limited slots — pay today.”",
     truth:
-      "There is no countdown on this page. The real deadlines are the university’s, and we show you those.",
+      "There is no countdown on this page. The real deadlines belong to the universities, and we show you those.",
   },
 ];
 
 export default function Home() {
+  const accreditationPending = isPending(ACCREDITATION.body);
+
   return (
     <div className="bg-canvas">
       <header className="border-b border-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <span
-              aria-hidden="true"
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent"
-            >
+            <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--on-accent)" }}>
                 <path d="M20 6 9 17l-5-5" />
               </svg>
             </span>
-            <span className="font-display text-xl font-extrabold tracking-tight text-ink">Nasuru</span>
+            <div>
+              <span className="font-display block text-xl leading-none font-extrabold tracking-tight text-ink">
+                Nasuru
+              </span>
+              <span className="text-xs text-subtle">International education agent</span>
+            </div>
           </div>
           <nav aria-label="Main" className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <a href="#destinations" className="text-muted hover:text-ink">Where you can study</a>
             <a href="#journey" className="text-muted hover:text-ink">How it works</a>
-            <a href="#checklist" className="text-muted hover:text-ink">What you’ll need</a>
             <a href="#fees" className="text-muted hover:text-ink">Fees</a>
             <Link href="/login" className="font-medium text-ink hover:underline">Sign in</Link>
             <Link
@@ -110,49 +130,138 @@ export default function Home() {
         {/* Hero */}
         <section className="mx-auto max-w-6xl px-6 py-16 text-center sm:py-20">
           <p className="text-xs font-bold tracking-[0.14em] text-accent uppercase">
-            For Nigerians applying to German universities
+            {ACCREDITATION.credential} · Serving students across Nigeria
           </p>
           <h1 className="font-display mx-auto mt-4 max-w-4xl text-4xl leading-[1.08] font-extrabold tracking-tight text-balance text-ink sm:text-5xl">
-            Stop tracking your application in a WhatsApp chat and a notes app
+            Study abroad without guessing which agent to trust
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted">
-            One checklist, built from your university’s real requirements. Upload a document once and it counts
-            everywhere it’s needed. See what’s verified, what’s waiting on us, and what’s waiting on you.
+            One fee opens every international school available to Nigerians, and covers everything you need from
+            today until you land on campus — choosing the university, the documents, the visa file, the arrival.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/signup"
               className="rounded-lg bg-accent px-7 py-3.5 text-base font-bold text-on-accent transition hover:bg-accent-hover"
             >
-              See your checklist — {ACCESS_FEE.formatted} once
+              Find my universities — {ACCESS_FEE.formatted} once
             </Link>
             <span className="text-sm text-subtle">
               Refundable for {REFUND.coolingOffDays} days. No subscription.
             </span>
           </div>
+
+          {/* Credential. The most load-bearing claim on the page, so it either
+              carries a reference a student can check, or it says it is pending. */}
+          <div className="mx-auto mt-10 max-w-2xl rounded-xl border border-line bg-sunken p-5 text-left sm:flex sm:items-center sm:gap-5">
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="mb-3 h-9 w-9 shrink-0 text-accent sm:mb-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2 4 6v6c0 5 3.4 8.9 8 10 4.6-1.1 8-5 8-10V6z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            <div>
+              <p className="font-display font-bold text-ink">{ACCREDITATION.credential}</p>
+              {accreditationPending ? (
+                <p className="mt-1 text-sm leading-relaxed text-muted">
+                  Our certificate and its reference number will be published here, with a link so you can verify it
+                  directly with the awarding body. Until then, ask us for it — we will send it to you.
+                </p>
+              ) : (
+                <p className="mt-1 text-sm leading-relaxed text-muted">
+                  Certified by {ACCREDITATION.body} since {ACCREDITATION.since}. Reference{" "}
+                  <span className="font-mono text-ink">{ACCREDITATION.reference}</span> —{" "}
+                  <a href={ACCREDITATION.verifyUrl} className="text-ink underline underline-offset-2">
+                    verify it independently
+                  </a>
+                  .
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Destinations */}
+        <section id="destinations" className="border-y border-line bg-sunken py-16">
+          <div className="mx-auto max-w-6xl px-6">
+            <h2 className="font-display text-3xl font-extrabold tracking-tight text-ink">
+              Good universities you can afford
+            </h2>
+            <p className="mt-3 max-w-3xl text-lg text-muted">
+              &ldquo;Best&rdquo; is not the same as &ldquo;most expensive&rdquo;. We start from what you can fund and
+              what your degree qualifies you for, then find the strongest universities inside that — and we tell you
+              the one requirement each country&rsquo;s applicants underestimate.
+            </p>
+
+            <div className="mt-8 grid gap-5 sm:grid-cols-2">
+              {DESTINATIONS.map((destination) => {
+                const pending = !destination.confirmed;
+                return (
+                  <div
+                    key={destination.country}
+                    className={`rounded-xl border p-6 ${
+                      destination.lead ? "border-accent bg-surface" : "border-line bg-surface"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="font-display text-lg font-bold text-ink">
+                        {pending ? "Another destination" : destination.country}
+                      </h3>
+                      {destination.lead && (
+                        <span className="rounded-full bg-success-bg px-2.5 py-1 text-xs font-semibold text-success">
+                          We are certified here
+                        </span>
+                      )}
+                    </div>
+                    {pending ? (
+                      <p className="mt-2 leading-relaxed text-muted">
+                        Tell us where you are aiming and we will say honestly whether we can help, or point you to
+                        someone who can.
+                      </p>
+                    ) : (
+                      <>
+                        <p className="mt-2 leading-relaxed text-muted">{destination.note}</p>
+                        <p className="mt-3 border-t border-line pt-3 text-sm text-subtle">
+                          <span className="font-semibold text-muted">Most underestimated:</span>{" "}
+                          {destination.hurdle}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </section>
 
         {/* The product, shown rather than described */}
-        <section className="mx-auto max-w-5xl px-6 pb-16" aria-label="Example checklist">
-          <div className="overflow-hidden rounded-t-2xl border border-line shadow-2xl">
+        <section className="mx-auto max-w-5xl px-6 py-16" aria-labelledby="tracker-heading">
+          <div className="text-center">
+            <h2 id="tracker-heading" className="font-display text-3xl font-extrabold tracking-tight text-ink">
+              Then we track every document to the visa
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-lg text-muted">
+              Not a WhatsApp chat and a notes app. One checklist per university, built from its real requirements,
+              showing what is verified and what is waiting on whom.
+            </p>
+          </div>
+
+          <div className="mt-10 overflow-hidden rounded-t-2xl border border-line shadow-2xl">
             <div className="flex items-center gap-3 border-b border-line bg-sunken px-4 py-3">
               <div aria-hidden="true" className="flex gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-line-strong opacity-40" />
                 <span className="h-2.5 w-2.5 rounded-full bg-line-strong opacity-40" />
                 <span className="h-2.5 w-2.5 rounded-full bg-line-strong opacity-40" />
               </div>
-              <p className="flex-1 text-center font-mono text-xs text-subtle">
-                nasuru.com/applications/hwr-berlin
-              </p>
+              <p className="flex-1 text-center font-mono text-xs text-subtle">nasuru.com/applications</p>
+              <span className="rounded bg-info-bg px-2 py-0.5 text-xs font-semibold text-info">Example</span>
             </div>
 
             <div className="bg-surface px-6 py-7 sm:px-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <h2 className="font-display text-xl font-bold text-ink">
-                    HWR Berlin — International Business Management
-                  </h2>
-                  <p className="mt-0.5 text-sm text-muted">Winter 2027 intake · Collecting documents</p>
+                  <h3 className="font-display text-xl font-bold text-ink">
+                    MSc International Business — United Kingdom
+                  </h3>
+                  <p className="mt-0.5 text-sm text-muted">September 2027 intake · Collecting documents</p>
                 </div>
                 <p className="text-sm text-muted">
                   <span className="font-display text-xl font-bold text-ink">9</span> of 17 verified
@@ -177,9 +286,9 @@ export default function Home() {
                     <circle cx="12" cy="12" r="10" /><path d="m8.5 12.5 2.5 2.5 5-5" />
                   </svg>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-ink">Proof of financial resources (blocked account)</p>
+                    <p className="font-medium text-ink">Financial evidence — 28 consecutive days</p>
                     <p className="mt-0.5 text-sm text-muted">
-                      Blocked account confirmation covering one year of living costs.
+                      Statements showing the funds held without dipping below the required balance.
                     </p>
                   </div>
                   <span className="rounded-full bg-success-bg px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-success">
@@ -212,11 +321,10 @@ export default function Home() {
                   </svg>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-ink">
-                      German A2 certificate{" "}
-                      <span className="font-normal text-subtle">— admission minimum</span>
+                      TB test certificate <span className="font-normal text-subtle">— required for Nigeria</span>
                     </p>
                     <p className="mt-0.5 text-sm text-muted">
-                      A2 is the admission minimum; B1 is recommended before travel.
+                      From a clinic approved by the UK Home Office. Valid for six months.
                     </p>
                   </div>
                   <span className="rounded-full bg-info-bg px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-info">
@@ -235,8 +343,8 @@ export default function Home() {
               What the whole thing looks like
             </h2>
             <p className="mx-auto mt-3 mb-10 max-w-2xl text-center text-lg text-muted">
-              Five stages, eighteen months to two years end to end. We tell you which stage you’re in and what is
-              holding it up.
+              From the first conversation to the day you land. We tell you which stage you are in and what is holding
+              it up.
             </p>
             <div className="overflow-hidden rounded-2xl border border-line bg-surface">
               <StudentJourney />
@@ -249,14 +357,14 @@ export default function Home() {
           <div className="grid gap-6 sm:grid-cols-3">
             {[
               {
+                title: "Anywhere in Nigeria",
+                body: "Lagos, Kano, Enugu, Port Harcourt — the whole process runs online, with a counsellor you can reach on WhatsApp or Telegram. You never have to travel to an office to hand in a document.",
+                icon: <><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" /></>,
+              },
+              {
                 title: "Upload once, not five times",
                 body: "Applying to four universities does not mean scanning your passport four times. One upload satisfies that requirement on every application at once.",
                 icon: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></>,
-              },
-              {
-                title: "Progress that means something",
-                body: "The bar counts verified documents, not uploaded ones. You will never be told you are nearly done on the strength of files nobody has checked.",
-                icon: <><path d="M3 3v18h18" /><path d="m7 14 4-4 3 3 5-6" /></>,
               },
               {
                 title: "Rejections come with reasons",
@@ -276,22 +384,21 @@ export default function Home() {
         </section>
 
         {/* The requirements */}
-        <section id="checklist" className="border-t border-line bg-sunken py-16">
+        <section className="border-t border-line bg-sunken py-16">
           <div className="mx-auto max-w-6xl px-6">
             <h2 className="font-display text-3xl font-extrabold tracking-tight text-ink">
-              What a German application actually needs
+              What every application needs
             </h2>
             <p className="mt-3 max-w-3xl text-lg text-muted">
-              Your checklist is generated from the requirement set of the specific university and programme you choose
-              — not a generic list. This is the shape of it.
+              The categories are the same wherever you apply. What changes — and what catches people out — is the
+              detail inside them. Your checklist is generated from the requirement set of the university and
+              programme you actually choose, not a generic list.
             </p>
             <dl className="mt-8 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
               {CHECKLIST_CATEGORIES.map((category, index) => (
                 <div key={category.name} className="bg-surface p-6">
                   <dt className="font-display flex items-baseline gap-2.5 text-base font-bold text-ink">
-                    <span className="font-mono text-sm text-accent">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
+                    <span className="font-mono text-sm text-accent">{String(index + 1).padStart(2, "0")}</span>
                     {category.name}
                   </dt>
                   <dd className="mt-2 text-sm leading-relaxed text-muted">{category.detail}</dd>
@@ -303,33 +410,47 @@ export default function Home() {
 
         {/* Fees and the honest limits */}
         <section id="fees" className="mx-auto max-w-6xl px-6 py-16">
-          <div className="grid gap-12 lg:grid-cols-[1fr_1.15fr]">
+          <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.15fr]">
             <div>
               <p className="text-xs font-bold tracking-[0.14em] text-accent uppercase">One price</p>
               <p className="font-display mt-3 text-5xl font-extrabold tracking-tight text-ink">
                 {ACCESS_FEE.formatted}
               </p>
-              <p className="mt-1 text-muted">Once. Stated here, before you create an account.</p>
+              <p className="mt-1 text-muted">Once. Not a deposit, not a percentage, not a monthly fee.</p>
+
+              <p className="mt-5 leading-relaxed text-muted">
+                It opens the full list of international schools available to Nigerian students, and it covers you all
+                the way to campus — every one of the five stages above, not just the application.
+              </p>
+
+              <ul className="mt-5 space-y-3">
+                {FEE_INCLUDES.map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="mt-0.5 h-5 w-5 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    <span className="text-muted">{item}</span>
+                  </li>
+                ))}
+              </ul>
 
               <div className="mt-6 rounded-xl bg-success-bg p-5 text-success">
                 <p className="leading-relaxed">
-                  <strong className="font-semibold">
-                    {REFUND.coolingOffDays}-day full refund
-                  </strong>{" "}
-                  as long as we haven’t yet reviewed one of your documents. Your checklist shows you exactly when that
-                  has happened.
+                  <strong className="font-semibold">{REFUND.coolingOffDays}-day full refund</strong> as long as we
+                  have not yet reviewed one of your documents. Your checklist shows you exactly when that has
+                  happened.
                 </p>
               </div>
 
               <p className="mt-5 leading-relaxed text-muted">
-                uni-assist fees, IELTS, the blocked account deposit and visa fees are paid by you, directly to those
-                bodies. We tell you what each costs before you commit to it.
+                Our fee is the only money that comes to us. University application fees, English tests, tuition
+                deposits, the health surcharge and visa fees are paid by you, directly to those bodies — we tell you
+                what each one costs before you commit to it, and we never take a cut of any of them.
               </p>
               <p className="mt-4 text-sm text-subtle">
                 Read the{" "}
                 <Link href="/refund-policy" className="text-ink underline underline-offset-2">refund policy</Link>{" "}
-                and{" "}
-                <Link href="/terms" className="text-ink underline underline-offset-2">terms</Link> before you pay.
+                and <Link href="/terms" className="text-ink underline underline-offset-2">terms</Link> before you pay.
               </p>
             </div>
 
@@ -357,11 +478,11 @@ export default function Home() {
         <section className="border-t border-line bg-ink py-16 text-center" style={{ color: "var(--canvas)" }}>
           <div className="mx-auto max-w-3xl px-6">
             <h2 className="font-display text-3xl font-extrabold tracking-tight" style={{ color: "var(--canvas)" }}>
-              See what your application actually needs
+              Tell us where you want to go
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-lg opacity-80">
-              Pick your university, answer a few questions, and get the real checklist. Ten minutes, and you can save
-              and come back.
+              Ten minutes, and you will know which universities are realistic for your grades and your budget. One
+              fee from there to campus.
             </p>
             <Link
               href="/signup"

@@ -61,6 +61,66 @@ export const ACCESS_FEE = {
   },
 } as const;
 
+/**
+ * The accreditation the landing page leads with.
+ *
+ * A certification claim is the single most load-bearing thing on a page aimed
+ * at an audience that has been defrauded before — and the easiest to fake. So
+ * none of it is written until the certificate is in hand: the body, the
+ * reference and the verification link stay PENDING, `check:launch` refuses a
+ * production build while they are, and the page renders an honest "pending"
+ * state rather than a badge nobody can check.
+ */
+export const ACCREDITATION = {
+  credential: "Certified UK study agent",
+  body: `${PENDING} certifying body`,
+  reference: `${PENDING} certificate reference`,
+  /** Where a student can independently confirm it. A badge nobody can verify is decoration. */
+  verifyUrl: `${PENDING} verification link`,
+  since: `${PENDING} year`,
+} as const;
+
+/**
+ * Where we actually place students.
+ *
+ * Only destinations we can stand behind belong here. `confirmed: false` rows
+ * render as "ask us" rather than as a claim, because a country listed on a
+ * landing page is a promise that somebody will know its requirements.
+ *
+ * `note` is the affordability angle — the reason a Nigerian student would pick
+ * that country over another — and every figure in one has to be checkable.
+ */
+export const DESTINATIONS = [
+  {
+    country: "United Kingdom",
+    confirmed: true,
+    lead: true,
+    note: "Where we are certified. One-year master’s, so one year of fees and living costs instead of two.",
+    hurdle: "CAS, a tuition deposit, 28 days of financial evidence, and a TB test certificate.",
+  },
+  {
+    country: "Germany",
+    confirmed: true,
+    lead: false,
+    note: "No tuition at public universities — you fund living costs, not fees.",
+    hurdle: "uni-assist, a blocked account, and German A2 before you apply.",
+  },
+  {
+    country: `${PENDING} third destination`,
+    confirmed: false,
+    lead: false,
+    note: `${PENDING} what makes it affordable`,
+    hurdle: `${PENDING} the requirement students underestimate`,
+  },
+  {
+    country: `${PENDING} fourth destination`,
+    confirmed: false,
+    lead: false,
+    note: `${PENDING} what makes it affordable`,
+    hurdle: `${PENDING} the requirement students underestimate`,
+  },
+] as const;
+
 export const REFUND = {
   /** Full refund inside this window, provided no document has been reviewed. */
   coolingOffDays: 14,
