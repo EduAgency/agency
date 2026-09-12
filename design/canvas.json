@@ -1,0 +1,25 @@
+{
+  "artboards": [
+    { "file": "Journey.dc.html", "x": 0, "y": 0, "w": 1656, "h": 930, "title": "Student Recruitment Journey (animated)" },
+    { "file": "Main.dc.html", "x": 0, "y": 1090, "w": 1280, "h": 2620, "title": "A - Institutional trust" },
+    { "file": "DirectionB.dc.html", "x": 1400, "y": 1090, "w": 1280, "h": 2620, "title": "B - Product first" },
+    { "file": "DirectionC.dc.html", "x": 2800, "y": 1090, "w": 1280, "h": 2060, "title": "C - Germany specialist" }
+  ],
+  "annotations": [
+    {
+      "id": "journey-note",
+      "x": 1760,
+      "y": 0,
+      "w": 300,
+      "text": "Animated rebuild of docs/Student Journey.jpg.\n\nThe line draws itself over ~3.4s, a bright dash runs just ahead of it, and each stage lights up as the line reaches it. Loops on an 11s cycle so you can watch it without clicking.\n\nHonours prefers-reduced-motion: goes straight to the finished frame."
+    },
+    {
+      "id": "directions-note",
+      "x": 0,
+      "y": 3790,
+      "w": 420,
+      "text": "Three directions, not three shades of one.\n\nA - Institutional trust: reads like an accredited education body. Serif, navy, structured. Leads with the intake calendar.\nTradeoff: safe; looks like a consultancy, not a product.\n\nB - Product first: the tracker IS the pitch. Shows the real checklist UI in the hero.\nTradeoff: sells the tool, less the expertise.\n\nC - Germany specialist: one destination, stated as authority. Dark, editorial, opinionated.\nTradeoff: closes the door on other countries later.\n\nEvery number I could not verify is a [BRACKETED] placeholder - no invented placement counts, no fake testimonials."
+    }
+  ],
+  "launch": { "view": "focused", "file": "Journey.dc.html" }
+}

@@ -99,9 +99,20 @@ export function Alert({
   );
 }
 
-/** Progress bar. Colour tracks completion, never used as the only signal. */
+/**
+ * Progress bar.
+ *
+ * The fill is the accent until the work is finished, then success green. It
+ * used to grade red / amber / green by percentage, which meant a student who
+ * had just started saw a deep red bar telling them their application was in
+ * trouble — when being at 25% of a checklist on day one is simply normal.
+ * Colour here encodes how far along you are, not whether something is wrong;
+ * the states that ARE wrong have their own badges and alerts.
+ *
+ * The percentage is always shown, so colour is never the only signal.
+ */
 export function ProgressBar({ percent, label }: { percent: number; label?: string }) {
-  const tone = percent >= 80 ? "bg-success" : percent >= 40 ? "bg-warning" : "bg-danger";
+  const tone = percent >= 100 ? "bg-success" : "bg-accent";
   return (
     <div className="space-y-1">
       <div className="flex items-baseline justify-between text-xs text-muted">

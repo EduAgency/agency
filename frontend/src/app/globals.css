@@ -59,6 +59,7 @@
   --color-info-line: var(--info-line);
 
   --font-sans: var(--font-source-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-schibsted), var(--font-source-sans), ui-sans-serif, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -69,42 +70,39 @@
 
   --canvas: #ffffff;
   --surface: #ffffff;
-  --sunken: #f8fafc;
+  --sunken: #f5f9f7;
 
-  --ink: #0f172a;
-  --muted: #475569;
-  --subtle: #64748b;
+  --ink: #10231c;
+  --muted: #3d534b;
+  --subtle: #5d736a;
   --on-accent: #ffffff;
 
-  --line: #e2e8f0;
-  /* Borders of actual controls carry meaning (WCAG 1.4.11) and are held to
-     3:1; the decorative --line above divides content and is not. */
-  --field-line: #7d8da3;
-  --line-strong: #64748b;
+  --line: #e4ebe8;
+  --field-line: #79938a;
+  --line-strong: #4b635a;
 
-  --accent: #0f172a;
-  --accent-hover: #334155;
-  /* A hue of its own, so focus never reads as "this element is selected". */
+  --accent: #0f6d52;
+  --accent-hover: #0a4d3a;
+  /* A hue of its own, so focus never reads as "this element is selected" -
+  which matters more now the accent is itself a green. */
   --focus: #1d4ed8;
 
   --danger: #9f1239;
-  /* The destructive button flips its label colour with the theme, because
-     --danger itself flips from a deep red to a pale one. */
   --on-danger: #ffffff;
   --danger-bg: #fff1f2;
   --danger-line: #fecdd3;
 
-  --warning: #92400e;
-  --warning-bg: #fffbeb;
-  --warning-line: #fde68a;
+  --warning: #8a3f10;
+  --warning-bg: #fff4ea;
+  --warning-line: #fadcc4;
 
-  --success: #065f46;
-  --success-bg: #ecfdf5;
-  --success-line: #a7f3d0;
+  --success: #0f6d52;
+  --success-bg: #e6f4ec;
+  --success-line: #bbe2d0;
 
-  --info: #075985;
-  --info-bg: #f0f9ff;
-  --info-line: #bae6fd;
+  --info: #0b5878;
+  --info-bg: #eef7fb;
+  --info-line: #c2e0ee;
 }
 
 /* ---------- Dark: redefines tokens only, never introduces new ones. -------- */
@@ -113,35 +111,35 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --canvas: #020617;
-    --surface: #0f172a;
-    --sunken: #1e293b;
+    --canvas: #08130f;
+    --surface: #10231c;
+    --sunken: #183029;
 
-    --ink: #f1f5f9;
-    --muted: #cbd5e1;
-    --subtle: #94a3b8;
-    --on-accent: #0f172a;
+    --ink: #edf5f2;
+    --muted: #bdd0c9;
+    --subtle: #93aca3;
+    --on-accent: #05211a;
 
-    --line: #1e293b;
-    --field-line: #64748b;
-    --line-strong: #94a3b8;
+    --line: #1f3a32;
+    --field-line: #6d8a80;
+    --line-strong: #93aca3;
 
-    --accent: #f1f5f9;
-    --accent-hover: #ffffff;
+    --accent: #37b489;
+    --accent-hover: #5ccfa4;
     --focus: #93c5fd;
 
     --danger: #fda4af;
     --on-danger: #4c0519;
-    --danger-bg: #4c0519;
+    --danger-bg: #43121b;
     --danger-line: #9f1239;
 
-    --warning: #fcd34d;
-    --warning-bg: #451a03;
-    --warning-line: #92400e;
+    --warning: #f4c06a;
+    --warning-bg: #3a2410;
+    --warning-line: #8a5a1f;
 
     --success: #6ee7b7;
-    --success-bg: #022c22;
-    --success-line: #065f46;
+    --success-bg: #06291f;
+    --success-line: #0f6d52;
 
     --info: #7dd3fc;
     --info-bg: #082f49;
@@ -152,35 +150,35 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --canvas: #020617;
-  --surface: #0f172a;
-  --sunken: #1e293b;
+  --canvas: #08130f;
+  --surface: #10231c;
+  --sunken: #183029;
 
-  --ink: #f1f5f9;
-  --muted: #cbd5e1;
-  --subtle: #94a3b8;
-  --on-accent: #0f172a;
+  --ink: #edf5f2;
+  --muted: #bdd0c9;
+  --subtle: #93aca3;
+  --on-accent: #05211a;
 
-  --line: #1e293b;
-  --field-line: #64748b;
-  --line-strong: #94a3b8;
+  --line: #1f3a32;
+  --field-line: #6d8a80;
+  --line-strong: #93aca3;
 
-  --accent: #f1f5f9;
-  --accent-hover: #ffffff;
+  --accent: #37b489;
+  --accent-hover: #5ccfa4;
   --focus: #93c5fd;
 
   --danger: #fda4af;
   --on-danger: #4c0519;
-  --danger-bg: #4c0519;
+  --danger-bg: #43121b;
   --danger-line: #9f1239;
 
-  --warning: #fcd34d;
-  --warning-bg: #451a03;
-  --warning-line: #92400e;
+  --warning: #f4c06a;
+  --warning-bg: #3a2410;
+  --warning-line: #8a5a1f;
 
   --success: #6ee7b7;
-  --success-bg: #022c22;
-  --success-line: #065f46;
+  --success-bg: #06291f;
+  --success-line: #0f6d52;
 
   --info: #7dd3fc;
   --info-bg: #082f49;
@@ -206,6 +204,16 @@
   /* Only suppress the default where a replacement is guaranteed above. */
   :focus:not(:focus-visible) {
     outline: none;
+  }
+
+  /**
+   * Headings take the display face everywhere, not just on the landing page.
+   * Done once here rather than as a utility on fifteen components, so a screen
+   * added later is consistent without anyone remembering to be.
+   */
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
   }
 
   /* Reference codes, payment references and amounts line up in columns. */

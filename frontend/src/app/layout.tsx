@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Source_Sans_3 } from "next/font/google";
+import { JetBrains_Mono, Schibsted_Grotesk, Source_Sans_3 } from "next/font/google";
 import { SessionProvider } from "@/lib/auth/SessionProvider";
 import { AnnouncerProvider } from "@/components/ui/Announcer";
 import "./globals.css";
@@ -19,6 +19,19 @@ const sourceSans = Source_Sans_3({
   variable: "--font-source-sans",
 });
 
+/**
+ * Schibsted Grotesk for headings only.
+ *
+ * It has enough character to carry a marketing page and stays legible as a UI
+ * heading at 15px, which a display face usually does not. Body text stays on
+ * Source Sans 3 — mixing the two is the whole point of the pairing.
+ */
+const schibsted = Schibsted_Grotesk({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-schibsted",
+});
+
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
@@ -33,7 +46,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${sourceSans.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${sourceSans.variable} ${schibsted.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-canvas font-sans text-ink antialiased">
         <SessionProvider>
           <AnnouncerProvider>{children}</AnnouncerProvider>
