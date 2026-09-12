@@ -1,27 +1,3 @@
-# Nasuru - one entry point for every routine command.
-#
-# Python is a uv project: dependencies, dev group and tool config all live in
-# backend/pyproject.toml, resolved into backend/uv.lock. Node is npm.
-#
-#   make            list every target
-#   make setup      install both stacks and start the infrastructure
-#   make verify     everything CI runs
-#
-# `uv run` creates and syncs the environment on demand, so nothing here needs a
-# virtualenv activated - or even created - first, and there is no Windows/POSIX
-# venv path to detect.
-
-# Which shell runs the recipes.
-#
-# `/bin/bash` only resolves when make was itself launched from Git Bash. Run
-# make from PowerShell or cmd and that path does not exist, so make quietly
-# falls back to running each command through CreateProcess with no shell -- at
-# which point any recipe using a pipe, a glob or a builtin like `echo` dies
-# with "The system cannot find the file specified".
-#
-# So: find Git Bash by its real Windows path. A bare `bash` on PATH is NOT safe
-# here -- on most Windows machines that resolves to WSL's bash, which has a
-# different view of the filesystem and cannot see C:/Users/... at all.
 ifeq ($(OS),Windows_NT)
 	GIT_BASH := $(firstword $(wildcard \
 		C:/Program\ Files/Git/bin/bash.exe \
@@ -41,7 +17,6 @@ endif
 BACKEND  := backend
 FRONTEND := frontend
 
-# Every backend command runs through uv, from backend/.
 UV     := cd $(BACKEND) && uv run
 MANAGE := $(UV) python manage.py
 PYTEST := $(UV) pytest
@@ -54,10 +29,6 @@ help: ## Show this list
 		| sort \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-
-# ---------------------------------------------------------------------------
-# Setup
-# ---------------------------------------------------------------------------
 
 .PHONY: setup
 setup: infra install migrate ## Full first-run setup: infra, dependencies, migrations
@@ -98,10 +69,6 @@ keys: ## Print a fresh DJANGO_SECRET_KEY and FIELD_ENCRYPTION_KEY
 	@$(UV) python -c "import secrets; print('DJANGO_SECRET_KEY=' + secrets.token_urlsafe(50))"
 	@$(UV) python -c "from cryptography.fernet import Fernet; print('FIELD_ENCRYPTION_KEY=' + Fernet.generate_key().decode())"
 
-# ---------------------------------------------------------------------------
-# Infrastructure
-# ---------------------------------------------------------------------------
-
 .PHONY: infra
 infra: ## Start Postgres and Redis
 	docker compose up -d db redis
@@ -114,10 +81,6 @@ infra-down: ## Stop the containers, keeping the data
 infra-reset: ## Destroy the containers AND their data, then start fresh
 	docker compose down -v
 	docker compose up -d db redis
-
-# ---------------------------------------------------------------------------
-# Running
-# ---------------------------------------------------------------------------
 
 .PHONY: dev
 dev: ## Reminder of the processes a full local stack needs
@@ -174,10 +137,6 @@ superuser: ## Create an admin account
 .PHONY: shell
 shell: ## Django shell
 	$(MANAGE) shell
-
-# ---------------------------------------------------------------------------
-# Checks
-# ---------------------------------------------------------------------------
 
 .PHONY: verify
 verify: check-backend check-frontend ## Everything CI runs
