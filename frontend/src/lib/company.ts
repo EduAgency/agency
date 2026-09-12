@@ -72,7 +72,7 @@ export const ACCESS_FEE = {
  * state rather than a badge nobody can check.
  */
 export const ACCREDITATION = {
-  credential: "Certified UK study agent",
+  credential: "Certified education agent",
   body: `${PENDING} certifying body`,
   reference: `${PENDING} certificate reference`,
   /** Where a student can independently confirm it. A badge nobody can verify is decoration. */
@@ -81,44 +81,48 @@ export const ACCREDITATION = {
 } as const;
 
 /**
- * Where we actually place students.
+ * What the service actually is, in the order a student meets it.
  *
- * Only destinations we can stand behind belong here. `confirmed: false` rows
- * render as "ask us" rather than as a claim, because a country listed on a
- * landing page is a promise that somebody will know its requirements.
- *
- * `note` is the affordability angle — the reason a Nigerian student would pick
- * that country over another — and every figure in one has to be checkable.
+ * Deliberately concrete. "We guide you through the process" is what every
+ * agency says; naming the four things we sit down and do is what separates a
+ * service from a slogan.
  */
-export const DESTINATIONS = [
+export const SERVICES = [
   {
-    country: "United Kingdom",
-    confirmed: true,
-    lead: true,
-    note: "Where we are certified. One-year master’s, so one year of fees and living costs instead of two.",
-    hurdle: "CAS, a tuition deposit, 28 days of financial evidence, and a TB test certificate.",
+    title: "Find tuition-free universities with courses worth doing",
+    detail:
+      "Public universities where international students pay no tuition, narrowed to the ones that teach your subject well and will accept your qualifications. Not a shortlist of whoever pays commission — we take none.",
   },
   {
-    country: "Germany",
-    confirmed: true,
-    lead: false,
-    note: "No tuition at public universities — you fund living costs, not fees.",
-    hurdle: "uni-assist, a blocked account, and German A2 before you apply.",
+    title: "Tell you exactly what each one requires",
+    detail:
+      "Every entry requirement in writing, before you spend a naira on a test or a translation. Including the ones students find out about too late: language levels, credential evaluation, how long money has to sit in an account.",
   },
   {
-    country: `${PENDING} third destination`,
-    confirmed: false,
-    lead: false,
-    note: `${PENDING} what makes it affordable`,
-    hurdle: `${PENDING} the requirement students underestimate`,
+    title: "Write your CV and motivation letter with you",
+    detail:
+      "Not a template with your name dropped into it. We draft with you until it argues for you specifically, for that programme — and we arrange certified translations of anything not already in the language the university reads.",
   },
   {
-    country: `${PENDING} fourth destination`,
-    confirmed: false,
-    lead: false,
-    note: `${PENDING} what makes it affordable`,
-    hurdle: `${PENDING} the requirement students underestimate`,
+    title: "Consult on the visa application — once you have an offer",
+    detail:
+      "Proof of funds, health checks, insurance, accommodation, the appointment. We prepare the file with you and stay with it to the decision.",
   },
+] as const;
+
+/**
+ * Costs a tuition-free place does NOT remove.
+ *
+ * On the page because "free" is the word that gets students into trouble: they
+ * budget for zero and discover the proof-of-funds requirement weeks before the
+ * intake. Figures stay bracketed until someone checks them against the
+ * current year — a stale number here is worse than none.
+ */
+export const REAL_COSTS = [
+  { item: "Proof of funds", amount: `${PENDING} current figure`, note: "Held before the visa, not spent — but you must be able to show it." },
+  { item: "Visa and health charges", amount: `${PENDING} current figure`, note: "Paid to the embassy, never to us." },
+  { item: "Flights and first month", amount: `${PENDING} current figure`, note: "Before any student job starts paying." },
+  { item: "Language or English test", amount: `${PENDING} current figure`, note: "Only where the university actually requires one." },
 ] as const;
 
 export const REFUND = {
