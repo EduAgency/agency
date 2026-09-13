@@ -37,3 +37,8 @@ backend/media/documents/
 
 # Local SQLite, used when Docker is not running
 *.sqlite3
+
+# Internal notes: business state, open decisions, anything that is ours to know
+# and not ours to publish. The repo is public; docs/ is the engineering record,
+# docs/internal/ is the rest.
+docs/internal/

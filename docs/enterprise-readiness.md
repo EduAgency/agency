@@ -779,28 +779,19 @@ added is editable at `/staff/blog/settings` rather than requiring a deploy.
 Added after the blog work, because it turned out to matter more than either of us
 thought.
 
-### The bug this fixes
+### The bug class this closes
 
-`backend/.env` on this machine says:
+The access fee existed in four independent places: an environment variable the
+payment service read, a constant in `frontend/src/lib/company.ts`, and a literal
+typed into the checkout button and the signup blurb.
 
-```
-ACCESS_FEE_AMOUNT=50000.00
-```
+Nothing tied them together, so nothing could fail when they disagreed — and a
+checkout button is the worst possible place for that. The number a person reads
+before clicking and the number their bank actually debits have to come from the
+same source, and here they demonstrably did not have to.
 
-Every page of the frontend said `₦5,000`. The checkout button was literally
-
-```tsx
-{busy ? "Taking you to checkout…" : "Pay ₦5,000"}
-```
-
-while `initiate_payment` read `settings.ACCESS_FEE_AMOUNT` and created a
-`Payment` for ten times that. A student would have clicked a button saying
-₦5,000 and received a bank alert for ₦50,000. Nothing in the test suite could
-fail, because nothing tied the two numbers together.
-
-There were four copies of the fee in total: the env var, `ACCESS_FEE` in
-`frontend/src/lib/company.ts`, the literal in the checkout page, and another in
-the signup blurb.
+No test could catch it either. Every assertion about the fee hardcoded the same
+literal the code did, so the suite agreed with the bug.
 
 ### The shape of the fix
 
@@ -823,9 +814,9 @@ token is a price that gets hardcoded in whichever surface cannot get one. Read
 through `@/lib/pricing` on the server and `usePricing()` in the two client pages.
 
 `ACCESS_FEE_AMOUNT` / `ACCESS_FEE_CURRENCY` still exist, and now seed the **first
-row only**. `make pricing` says so out loud when they disagree with what is
-actually charged, because a deployment whose env var is being ignored is a
-deployment where somebody expects it to work.
+row only**. `make pricing` says so out loud whenever they disagree with what is
+actually charged, because a deployment whose env var is being silently ignored is
+a deployment where somebody expects it to work.
 
 ### Cost estimates, and why they go stale by themselves
 
@@ -871,27 +862,20 @@ unverified figure.
   agree on the amount for the same request.
 - A shared autouse fixture clears the cached singletons between tests, so a test
   that changes the fee cannot affect a different file.
-- **Two existing tests had the fee hardcoded** and failed against the live
-  ₦50,000 row — one in the blog's house-style scan, one in
-  `test_the_client_cannot_choose_the_amount`, which is the test that guards a
-  student being able to pay ₦1 for access. Both passed before only because the
-  code hardcoded the same number; both now read the price from the row, via a
-  shared `access_fee` fixture. The security property they assert was never
-  broken: the posted amount was still discarded.
+- **Two existing tests had the fee hardcoded** and failed the moment the price
+  came from a row instead of a literal — one in the blog's house-style scan, one
+  in `test_the_client_cannot_choose_the_amount`, the test that guards against a
+  student paying ₦1 for access. Both had passed only because the code hardcoded
+  the same number they asserted. Both now read the price from the row, through a
+  shared `access_fee` fixture, so neither can agree with a wrong value again. The
+  security property they assert was never broken: the posted amount was still
+  discarded.
 - The full backend suite is back to exactly the six pre-existing failures (four
   Redis/Celery from Docker being down, one SQLite raw-SQL artefact, one journey
   test that needs the broker), none of them in pricing.
 - Both singletons' caches fail open: `Pricing.load()` is on the read path of
   every public page and of checkout, so a Redis outage costs one query.
 - `make lint-backend` clean, `tsc` clean, `eslint` clean, production build clean.
-
-### What you need to decide
-
-**Which number is right.** The row is currently seeded from `.env` at ₦50,000, so
-that is what the site now says *and* charges — consistently, for the first time.
-Every conversation about this product has said ₦5,000. If that is the real price,
-set it once at `/staff/pricing` (or in the Django admin) and every surface follows;
-the env var is no longer consulted.
 
 ### Still not done
 
