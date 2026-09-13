@@ -67,6 +67,7 @@ LOCAL_APPS = [
     "apps.payments",
     "apps.referrals",
     "apps.notifications",
+    "apps.blog",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -262,6 +263,14 @@ REST_FRAMEWORK = {
         # session notices, low enough that scripted enumeration does.
         "user": "1000/hour",
         "anon": "100/hour",
+        # Each AI assist is a real model call the agency pays for. 40/hour is
+        # more than a writer working normally will reach, and it stops a stuck
+        # retry loop in the composer from spending the month's budget.
+        "blog_ai": "40/hour",
+        # A hard ceiling on comment submission, above the editable per-IP limit
+        # in the blog settings. Two limits doing two jobs: this one protects the
+        # database, that one enforces an editorial policy.
+        "blog_comment": "20/hour",
     },
 }
 
@@ -339,7 +348,7 @@ CACHES = {
 }
 
 # --------------------------------------------------------------------------
-# Email / SMS
+# Email
 # --------------------------------------------------------------------------
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
@@ -355,8 +364,31 @@ PAYSTACK_WEBHOOK_IP_ALLOWLIST = [
     "52.49.173.169",
     "52.214.14.220",
 ]
+# The access fee lives in the database (apps.payments.pricing.Pricing), because
+# it is a business decision and changing it should not need a deploy — and more
+# importantly, so the gateway and every page that quotes a price cannot disagree.
+#
+# These two are the SEED for the very first row only. After that the row is the
+# source of truth and these are ignored, so do not expect editing them to change
+# anything on a running deployment.
 ACCESS_FEE_AMOUNT = env.str("ACCESS_FEE_AMOUNT", default="5000.00")
 ACCESS_FEE_CURRENCY = env.str("ACCESS_FEE_CURRENCY", default="NGN")
+
+# --------------------------------------------------------------------------
+# Blog and SEO
+# --------------------------------------------------------------------------
+# AI drafting is optional. Without a key the composer still works — it simply
+# has no assist, and /api/admin/blog/ai/ reports that plainly instead of
+# failing mid-request.
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
+BLOG_AI_MODEL = env("BLOG_AI_MODEL", default="claude-opus-5")
+
+# Canonical, absolute origin for the public site. Sitemaps, RSS, canonical tags
+# and JSON-LD all need an absolute URL, and getting this wrong splits a page's
+# ranking between two hostnames — so it is a setting, never derived from the
+# request Host header.
+SITE_BASE_URL = env("SITE_BASE_URL", default=FRONTEND_BASE_URL).rstrip("/")
+SITE_NAME = env("SITE_NAME", default="Nasuru")
 
 # --------------------------------------------------------------------------
 # Security

@@ -39,6 +39,19 @@ dependencies = [
     "boto3==1.40.24",
     "Pillow==11.3.0",                 # school logos / image uploads
 
+    # --- Blog ---
+    # Post bodies are authored in Markdown and rendered server-side, so the
+    # published HTML is produced once, by one code path, and sanitised before
+    # it is ever stored — the frontend never trusts a body it did not get from
+    # this pipeline.
+    "markdown-it-py==3.0.0",
+    "linkify-it-py==2.0.3",          # turns a pasted bare URL into a link
+    "nh3==0.2.21",                    # Ammonia bindings: HTML sanitiser
+    # Claude drafts outlines, bodies and search metadata for the editorial
+    # team. Optional at runtime: without ANTHROPIC_API_KEY the composer still
+    # works, it just has no assist.
+    "anthropic==0.75.0",
+
     # --- Security / ops ---
     "cryptography==45.0.6",           # gateway key encryption at rest
     "django-ratelimit==4.1.0",

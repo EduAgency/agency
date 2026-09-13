@@ -104,7 +104,12 @@ class MockGateway(BaseGateway):
 
         payment = Payment.objects.filter(reference=reference).first()
         amount = payment.amount if payment else Decimal("0")
-        currency = payment.currency if payment else settings.ACCESS_FEE_CURRENCY
+        if payment:
+            currency = payment.currency
+        else:
+            from apps.payments.pricing import Pricing
+
+            currency = Pricing.load().access_fee_currency
 
         return TransactionResult(
             reference=reference,

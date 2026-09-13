@@ -1,19 +1,27 @@
 import Link from "next/link";
 import { Clause, LegalDocument, Points } from "@/components/legal";
-import { ACCESS_FEE, REFUND } from "@/lib/company";
+import { REFUND } from "@/lib/company";
+import { getPricing, isPriceKnown } from "@/lib/pricing";
 
-export const metadata = {
-  title: "Refund policy — Nasuru",
-  description: `When the ${ACCESS_FEE.formatted} access fee is refundable, when it is not, and how to ask.`,
-};
+export async function generateMetadata() {
+  const pricing = await getPricing();
+  const fee = isPriceKnown(pricing)
+    ? `the ${pricing.access_fee.formatted} access fee`
+    : "the access fee";
+  return {
+    title: "Refund policy — Nasuru",
+    description: `When ${fee} is refundable, when it is not, and how to ask.`,
+  };
+}
 
-export default function RefundPolicyPage() {
+export default async function RefundPolicyPage() {
+  const pricing = await getPricing();
+  const summary = isPriceKnown(pricing)
+    ? `The access fee is ${pricing.access_fee.formatted}, paid once. This page says when we give it back. We link to it from the home page before you pay, because a refund policy you only find afterwards is not a policy.`
+    : "The access fee is paid once. This page says when we give it back. We link to it from the home page before you pay, because a refund policy you only find afterwards is not a policy.";
+
   return (
-    <LegalDocument
-      title="Refund policy"
-      updated="10 September 2026"
-      summary={`The access fee is ${ACCESS_FEE.formatted}, paid once. This page says when we give it back. We link to it from the home page before you pay, because a refund policy you only find afterwards is not a policy.`}
-    >
+    <LegalDocument title="Refund policy" updated="10 September 2026" summary={summary}>
       <Clause heading={`Changed your mind: ${REFUND.coolingOffDays} days`}>
         <p>
           You can ask for a <strong>full refund within {REFUND.coolingOffDays} days</strong> of

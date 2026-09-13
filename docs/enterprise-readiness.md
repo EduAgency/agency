@@ -575,3 +575,329 @@ failure on the checklist progress bar.
 **Remaining order of value.** NDPR self-service next, which would let the privacy policy's
 30-day commitment rest on code instead of a person reading an inbox. Then session management.
 The accessibility statement is an afternoon and can go whenever.
+
+---
+
+## Phase 5 — The blog, and making the site findable
+
+Two requests, and they are really one: an agency whose whole argument is "we tell you what other
+agents won't" has no reason to appear in a search result unless it has actually written some of it
+down. So the blog is the acquisition channel and the SEO work is what makes the channel function.
+Neither is worth much alone.
+
+### What shipped
+
+**Backend — `apps/blog/`**
+
+| File | What it holds |
+| --- | --- |
+| `models.py` | `Category`, `Tag`, `Post`, `PostRevision` |
+| `rendering.py` | Markdown → sanitised HTML, once, server-side |
+| `ai.py` | Claude-backed outline / draft / metadata / rewrite, plus the house-style scan |
+| `services.py` | The publish gate, revisions, restore |
+| `serializers.py` | Public shape and staff shape, kept separate |
+| `api.py` | Public read, staff write, AI assist |
+| `feeds.py` | RSS and Atom |
+| `admin.py` | Django admin, for the quarterly jobs and for recovery |
+| `management/commands/seed_blog.py` | Four categories, seven tags, three real articles |
+
+**Frontend** — `/blog`, `/blog/[slug]`, `/blog/category/[slug]`, `/blog/tag/[slug]`, a staff
+composer at `/staff/blog`, and the SEO infrastructure: `sitemap.ts`, `robots.ts`,
+`opengraph-image.tsx`, `blog/rss.xml/route.ts`, and `lib/seo.ts` for metadata and JSON-LD. The
+landing page's header and footer moved into `components/marketing/SiteChrome.tsx` — a blog that
+does not carry the same header is a different website as far as a reader is concerned, and two
+copies would have drifted inside a week.
+
+**New permissions.** `AdminProfile.can_write_content` and `can_publish_content`, split
+deliberately: a writer drafts and uses the assist, an editor decides what the public sees.
+
+**New settings.** `ANTHROPIC_API_KEY`, `BLOG_AI_MODEL`, `SITE_BASE_URL`, `SITE_NAME`, and a
+`blog_ai` throttle scope at 40/hour — each assist is a billed model call, and 40 is well past
+what a writer working normally reaches while still stopping a stuck retry loop in the composer.
+
+### The decisions worth arguing about
+
+**A slug is a promise, so it is frozen at publish.** Once a post is live its URL is in search
+results, in WhatsApp messages, and on other people's sites. `Post.save()` refuses to change the
+slug of a published or archived post. Retitling stays allowed — the title is editorial, the URL is
+a commitment. Deleting a live post is refused too: it leaves every inbound link broken with no
+explanation.
+
+**Scheduling reads the clock, not a flag.** `PostQuerySet.live()` filters on
+`published_at <= now()`, so a scheduled post cannot go public early because a worker was down, and
+cannot fail to appear because one never ran. There is no publishing cron job, and that is the
+point.
+
+**Markdown is rendered on the server, exactly once.** The frontend ships no Markdown parser, the
+HTML a crawler gets is the HTML a reader gets, and sanitisation happens in one place. Post bodies
+are written by staff, so this is not the usual hostile-input problem — but a body can also come out
+of `ai.py`, an editor can paste from anywhere, and a compromised staff account should not be able
+to put a script tag on a public page. `nh3` strips everything outside a fixed tag list on the way
+into `body_html`, and `body` itself is never sent to the browser.
+
+**Nothing publishes without a person.** `published_by` is required, enforced in `Post.clean()`, and
+AI involvement is recorded on the post and disclosed to readers on the article. For a brand whose
+argument is "we do not make claims you cannot check", passing generated prose off as first-hand
+experience would be the same failure in a different costume.
+
+**The house-style scan is the interesting part.** `ai.review_flags()` scans every body — human or
+generated — for three things: guarantees, named places, and figures the business has not published.
+It runs on every AI suggestion in the composer and again at publish, where its output becomes
+blockers. The rules encode business constraints, not taste: naming a country gives away what the
+₦5,000 buys, an invented figure is the thing this agency exists not to do, and getting the
+admission/visa order wrong in public costs a reader real money.
+
+**Then the scan blocked an article it should have allowed.** The third seeded post teaches readers
+to recognise scam language — and so it necessarily contains the words "guaranteed visa". The guard
+refused to publish the one article most worth publishing. That is a genuine false-positive class,
+not a bug in the prose, and weakening the scan to accommodate it would have cost far more than it
+saved.
+
+The resolution is `Post.style_override_reason`: a written justification that turns the flags from
+blockers into warnings the editor still has to acknowledge, and which is copied into the audit
+record on publish. An editor who cannot write down why the phrase belongs there has just
+discovered that it does not. It is the same shape as the `force` flag on warnings — an override
+with a name attached — and it is the honest answer to a blunt rule meeting a legitimate exception.
+
+**Warnings versus blockers.** Blockers are facts: no body, no excerpt, a hero image with no alt
+text, AI involvement with no notes. Warnings are judgement: a 72-character title, a focus keyword
+absent from the article, no category. Publishing past warnings needs `force`, and what was
+overridden is recorded. Conflating the two would give either an editor who cannot publish a good
+post or a gate that stops nothing.
+
+**Tag pages are `noindex, follow`.** They are navigation, and almost always a subset of a category
+page. Indexing both asks a search engine to choose between two pages saying the same thing, and it
+usually chooses neither. `follow` keeps the internal links working. Category pages with no live
+posts 404 rather than shipping a thin indexable page.
+
+**`robots.ts` disallows everything on preview deployments.** A staging copy that gets indexed
+competes with production for the same queries, and the usual way that happens is this file being
+written for production only.
+
+**The share card avoids the naira sign.** The OG image renderer has no font of its own outside
+basic Latin and silently drops what it cannot fetch — `₦` came out as a blank box, which the build
+warned about and would otherwise have shipped. The card says `NGN 5,000` and draws its tick as an
+SVG path. Everywhere a browser does the rendering, the symbol stays.
+
+**The AI assist never writes into the draft.** Every suggestion lands in a review area behind an
+explicit "Use this" button, because the moment generated text can appear in a body without a person
+pressing something, the provenance field becomes a guess. Provenance also only escalates: a later
+metadata suggestion cannot downgrade a machine-written draft to "AI-assisted edit".
+
+The most useful thing the assist returns is not the prose. `ArticleOutline.what_we_cannot_claim` is
+the model listing where it was tempted to invent a figure or name a country, for the editor to
+verify or cut.
+
+**Streaming for the draft, structured output for everything else.** A full article risks a gateway
+timeout before the first byte, so `write_draft` and `rewrite` stream and use
+`.get_final_message()`. Outlines, metadata and title options come back through `messages.parse()`
+with Pydantic models, so a malformed suggestion is a validation error rather than a half-parsed
+dictionary.
+
+**Search is `icontains`, not Postgres full-text.** At this volume it is indistinguishable to a
+reader, and it keeps the suite runnable on SQLite. Worth revisiting at a few hundred posts, not
+before.
+
+### Verification
+
+- 44 new backend tests (`tests/test_blog.py`), weighted towards the promises rather than CRUD: the
+  slug freeze, the publish gate, the sanitiser, the house-style scan, the override and its audit
+  trail, and that a writer cannot publish.
+- 24 new Playwright tests. Axe (WCAG 2.2 A + AA) over the blog list, the composer, and the
+  composer's preview — which renders the same `.post-body` markup the public article does — in both
+  colour schemes and at phone width, plus the public blog index. Three behavioural tests cover the
+  parts that are promises rather than pixels: that provenance is recorded, that a dirty draft cannot
+  be published, and that the assist offers nothing to apply until something has been generated.
+  Two real defects came out of it: a `getByLabel("Title")` that also matched "Search title", and
+  confirmation that the composer's own pre-flight panel — the densest colour-on-colour surface on
+  the page — passes contrast in both themes.
+- The e2e fixture contract now covers all six blog serializers, so a renamed field on any of them
+  fails `tests/test_frontend_contract.py` rather than silently breaking a page that still passes
+  its own tests.
+- `make lint-backend` clean. Fixing one ruff finding surfaced a real bug: `lstrip("NGN")` takes a
+  character *set*, so it was also eating a leading `G`.
+- Frontend: `tsc --noEmit` clean, `eslint` clean, `npm test` 17 passing, `npm run check:contrast`
+  54 pairs across both themes, production build clean with no prerender or font warnings.
+- `make blog-seed` runs, is idempotent, and asserts its own prose against the house style before it
+  writes anything.
+- The full backend suite is unchanged: the same 6 failures as before this phase, all of them
+  Redis/Celery-broker or SQLite artefacts from Docker being down, none in `apps/blog`.
+
+### One small side change
+
+`frontend/.prettierrc.json` now pins `printWidth: 100`. There was no Prettier config, so
+`npm run format` was silently running at the default 80 while every file in the repo had been
+written at roughly 100 — meaning the project's own format script would have rewritten the entire
+codebase the first time anyone ran it. Pinning 100 makes it agree with the code that exists.
+Fourteen pre-existing files are still not Prettier-clean at 100; reformatting them is a separate
+decision and was left alone rather than buried inside this change.
+
+### Honestly not done
+
+- **The public article page has never been scanned populated.** Those pages fetch from the API on
+  the *server*, which Playwright's `page.route()` cannot intercept, so `/blog` is scanned in the
+  state it renders when the API is unreachable — a real state, but the empty one. The article
+  layout's typography is covered indirectly through the composer's preview, which renders the same
+  `.post-body` markup. Scanning it properly needs the real backend running in CI.
+- **No end-to-end publish → appears-on-site test**, for the same reason. The two halves are each
+  covered (the backend test asserts a published post appears in the public list; the e2e test
+  asserts the composer's publish button is correctly gated) but nothing exercises the seam.
+- **No per-article OG image.** One well-made card for everything. A dynamic image per post means an
+  edge function on every share-link crawl and a second place a title has to be escaped.
+- **Hero images are uploadable but there is no picker in the composer.** The field exists on the
+  model and in Django admin; the composer edits the alt text only.
+- **No internal-link checker.** The assist suggests topics to link to, and nothing verifies that a
+  link in a body still resolves.
+- **Nothing has been published on the real site yet**, so none of the SEO work has been observed
+  against a live crawler. `NEXT_PUBLIC_SITE_URL` and `SITE_BASE_URL` must be set to the real domain
+  and must agree, or canonical URLs will point at localhost.
+
+---
+
+## Phase 6 — The blog, as something an editorial team runs
+
+Phase 5 built posts and a composer. This is the layer that makes it a system
+somebody operates: site-wide settings in one editable row, comments with
+moderation and five layers of spam defence, real author identity with `Person`
+markup, FAQ blocks that become rich results, and slug changes that leave a 301
+behind.
+
+**The plan, the decisions and the honest gaps are in [blog-system.md](blog-system.md).**
+It is the longer document because most of this phase is decisions rather than
+mechanism — what belongs in a database row versus a deploy, why every comment
+default is the cautious one, and why there is no CAPTCHA.
+
+Headline numbers: 100 backend tests (up from 44), 28 Playwright tests on the
+staff side, `AdminProfile` unchanged, four new models, one new throttle scope
+(`blog_comment`), and no new environment variables — every setting this phase
+added is editable at `/staff/blog/settings` rather than requiring a deploy.
+
+---
+
+## Prices come from one place
+
+Added after the blog work, because it turned out to matter more than either of us
+thought.
+
+### The bug this fixes
+
+`backend/.env` on this machine says:
+
+```
+ACCESS_FEE_AMOUNT=50000.00
+```
+
+Every page of the frontend said `₦5,000`. The checkout button was literally
+
+```tsx
+{busy ? "Taking you to checkout…" : "Pay ₦5,000"}
+```
+
+while `initiate_payment` read `settings.ACCESS_FEE_AMOUNT` and created a
+`Payment` for ten times that. A student would have clicked a button saying
+₦5,000 and received a bank alert for ₦50,000. Nothing in the test suite could
+fail, because nothing tied the two numbers together.
+
+There were four copies of the fee in total: the env var, `ACCESS_FEE` in
+`frontend/src/lib/company.ts`, the literal in the checkout page, and another in
+the signup blurb.
+
+### The shape of the fix
+
+One row, `apps.payments.pricing.Pricing`, and everything reads it:
+
+| Reader | Was |
+| --- | --- |
+| `initiate_payment` — what the gateway charges | `settings.ACCESS_FEE_AMOUNT` |
+| Landing page, hero, fee section | `ACCESS_FEE.formatted` |
+| Checkout page and button | the literal `₦5,000` |
+| Signup blurb | the literal `₦5,000` |
+| Terms, refund policy | `ACCESS_FEE.formatted` |
+| Article call-to-action | `ACCESS_FEE.formatted` |
+| Share card | `ACCESS_FEE.amount` |
+| `siteDescription()` for search results | `ACCESS_FEE.formatted` |
+| The blog's house-style scan | the literal set `{"5,000", "5000"}` |
+
+Served publicly at `/api/pricing/`, unauthenticated on purpose: a price behind a
+token is a price that gets hardcoded in whichever surface cannot get one. Read
+through `@/lib/pricing` on the server and `usePricing()` in the two client pages.
+
+`ACCESS_FEE_AMOUNT` / `ACCESS_FEE_CURRENCY` still exist, and now seed the **first
+row only**. `make pricing` says so out loud when they disagree with what is
+actually charged, because a deployment whose env var is being ignored is a
+deployment where somebody expects it to work.
+
+### Cost estimates, and why they go stale by themselves
+
+`REAL_COSTS` in `company.ts` was four rows whose amounts were all `PENDING`, with
+a comment reading *"a stale number here is worse than none"*. That comment was
+correct and the mechanism did not exist — a constant in a TypeScript file cannot
+know how old it is, and would have sat there looking researched for two years.
+
+`CostEstimate` rows carry `verified_on` and `verified_source`. Past
+`Pricing.estimate_stale_after_days` (default 120) the row stops serving its
+figure and serves "Ask us — this changes" instead. Nobody has to remember, and
+the stale figure never reaches the API, so it cannot leak into a page or a cache.
+
+`make pricing-seed` creates the four rows the landing page expects **with no
+figures**, which is the honest state: nobody has checked them. The costs section
+on the landing page hides itself entirely when there are no rows, because a table
+with a header and nothing under it reads as a broken page.
+
+### Three smaller decisions
+
+**The fallback shows "—", not a price.** `PRICING_UNAVAILABLE` in
+`@/lib/pricing` has every money field as a dash. A fallback that quietly
+substituted ₦5,000 would look correct and be wrong, which is the bug again in a
+different costume. `usePricing()` exposes `ready` so checkout renders a loading
+state rather than a guessed number.
+
+**The blog scan follows the fee.** `ai.allowed_figures()` derives from the row,
+so raising the fee to ₦7,500 both permits "7,500" in new copy *and* starts
+flagging every surviving "5,000" in an old article — which is now a wrong number
+on a live page. The house-style prompt interpolates it too, so Claude is told the
+current fee on the next request.
+
+**The launch gate lost the cost figures and says so.**
+`check-launch-ready.mjs` scans `company.ts` for `PENDING`, and the cost amounts
+are no longer there. Rather than leave a silent gap, the script now prints where
+that check moved to: `make pricing ARGS=--strict`, which exits non-zero on an
+unverified figure.
+
+### Verification
+
+- **28 new backend tests** (`tests/test_pricing.py`). The one that would have
+  caught the original bug asserts that `/api/pricing/` and the `Payment` row
+  agree on the amount for the same request.
+- A shared autouse fixture clears the cached singletons between tests, so a test
+  that changes the fee cannot affect a different file.
+- **Two existing tests had the fee hardcoded** and failed against the live
+  ₦50,000 row — one in the blog's house-style scan, one in
+  `test_the_client_cannot_choose_the_amount`, which is the test that guards a
+  student being able to pay ₦1 for access. Both passed before only because the
+  code hardcoded the same number; both now read the price from the row, via a
+  shared `access_fee` fixture. The security property they assert was never
+  broken: the posted amount was still discarded.
+- The full backend suite is back to exactly the six pre-existing failures (four
+  Redis/Celery from Docker being down, one SQLite raw-SQL artefact, one journey
+  test that needs the broker), none of them in pricing.
+- Both singletons' caches fail open: `Pricing.load()` is on the read path of
+  every public page and of checkout, so a Redis outage costs one query.
+- `make lint-backend` clean, `tsc` clean, `eslint` clean, production build clean.
+
+### What you need to decide
+
+**Which number is right.** The row is currently seeded from `.env` at ₦50,000, so
+that is what the site now says *and* charges — consistently, for the first time.
+Every conversation about this product has said ₦5,000. If that is the real price,
+set it once at `/staff/pricing` (or in the Django admin) and every surface follows;
+the env var is no longer consulted.
+
+### Still not done
+
+- **No price history.** A change is audited, so the trail exists in `AuditLog`,
+  but there is no "what did we charge in March" screen.
+- **No per-currency pricing.** One fee, one currency. A second currency would
+  need a table rather than a row, and nothing asks for one yet.
+- **Cost estimates are not versioned.** Editing a figure overwrites the old one;
+  the audit row keeps the previous value.

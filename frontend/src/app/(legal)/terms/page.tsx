@@ -1,13 +1,20 @@
 import Link from "next/link";
 import { Clause, DraftClause, LegalDocument, NeedsSignOff, Points } from "@/components/legal";
-import { ACCESS_FEE, COMPANY, REFUND, formattedAddress } from "@/lib/company";
+import { COMPANY, REFUND, formattedAddress } from "@/lib/company";
+import { getPricing, isPriceKnown } from "@/lib/pricing";
 
 export const metadata = {
   title: "Terms of service — Nasuru",
   description: "What Nasuru does for you, what it does not, and what each side is responsible for.",
 };
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  // The fee is a database row, not a constant — see @/lib/pricing. When it is
+  // unreachable the clause says "a one-off access fee" rather than inventing a
+  // number, because a wrong figure in the terms is a contract problem.
+  const pricing = await getPricing();
+  const feeText = isPriceKnown(pricing) ? pricing.access_fee.formatted : "a one-off access fee";
+
   return (
     <LegalDocument
       title="Terms of service"
@@ -51,9 +58,9 @@ export default function TermsPage() {
 
       <Clause heading="The access fee">
         <p>
-          Access to the platform costs {ACCESS_FEE.formatted}, paid once. The fee is stated on our
-          home page before you create an account, and it is the only charge we make for the service
-          described above.
+          Access to the platform costs {feeText}, paid once. The fee is stated on our home page
+          before you create an account, and it is the only charge we make for the service described
+          above.
         </p>
         <p>
           Payment is confirmed by our payment provider, not by your browser reaching a success page.

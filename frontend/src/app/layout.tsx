@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono, Schibsted_Grotesk, Source_Sans_3 } from "next/font/google";
 import { SessionProvider } from "@/lib/auth/SessionProvider";
 import { AnnouncerProvider } from "@/components/ui/Announcer";
+import { SITE_DESCRIPTION, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 /**
@@ -38,15 +39,40 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
 });
 
+/**
+ * Site-wide metadata.
+ *
+ * `metadataBase` is what makes every relative `alternates.canonical` and every
+ * Open Graph image URL that pages build through `@/lib/seo` resolve to an
+ * absolute URL. Without it Next silently emits relative canonicals, which
+ * crawlers treat as no canonical at all.
+ *
+ * The title template is a bare `%s` on purpose: pages build their own full
+ * titles through `pageMetadata`, where the brand suffix sits alongside the
+ * description and canonical rather than being bolted on here. `default` covers
+ * the routes that set no title of their own.
+ */
 export const metadata: Metadata = {
-  title: "Nasuru — study abroad applications, tracked properly",
-  description:
-    "Document checklists, application tracking and review for Nigerian students applying to universities abroad.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Nasuru — tuition-free schools abroad, every requirement in writing",
+    template: "%s",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: "Nasuru",
+  alternates: {
+    canonical: "/",
+    types: { "application/rss+xml": "/blog/rss.xml" },
+  },
+  formatDetection: { telephone: false },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${sourceSans.variable} ${schibsted.variable} ${jetbrainsMono.variable}`}>
+    <html
+      lang="en"
+      className={`${sourceSans.variable} ${schibsted.variable} ${jetbrainsMono.variable}`}
+    >
       <body className="bg-canvas font-sans text-ink antialiased">
         <SessionProvider>
           <AnnouncerProvider>{children}</AnnouncerProvider>

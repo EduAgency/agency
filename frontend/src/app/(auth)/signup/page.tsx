@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { ApiError } from "@/lib/api";
 import { checkReferralCode, signup } from "@/lib/auth/client";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { usePricing } from "@/lib/usePricing";
 import { Alert, Button, Field, inputClass } from "@/components/ui";
 import type { FieldErrors } from "@/types";
 
@@ -24,6 +25,7 @@ function SignupForm() {
     accept_terms: false,
     marketing_opt_in: false,
   });
+  const { pricing, ready: priceReady } = usePricing();
   const [errors, setErrors] = useState<FieldErrors>({});
   const [message, setMessage] = useState("");
   const [referrer, setReferrer] = useState<string | null>(null);
@@ -78,8 +80,10 @@ function SignupForm() {
     <main className="mx-auto max-w-md px-6 py-12">
       <h1 className="text-2xl font-semibold text-ink">Create your account</h1>
       <p className="mt-1 text-sm text-muted">
-        Takes a minute. The ₦5,000 access fee comes after this step, and you&apos;ll see exactly
-        what it covers before you pay.
+        Takes a minute.{" "}
+        {priceReady && pricing.access_fee.major_units > 0
+          ? `The ${pricing.access_fee.formatted} access fee comes after this step, and you'll see exactly what it covers before you pay.`
+          : "The access fee comes after this step, and you'll see exactly what it covers before you pay."}
       </p>
 
       <form onSubmit={submit} className="mt-8 space-y-5">

@@ -211,7 +211,9 @@
    * Done once here rather than as a utility on fifteen components, so a screen
    * added later is consistent without anyone remembering to be.
    */
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     font-family: var(--font-display);
     letter-spacing: -0.015em;
   }
@@ -259,4 +261,174 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/**
+ * Article bodies.
+ *
+ * The blog's HTML is produced by the backend (apps/blog/rendering.py), so it
+ * arrives as bare semantic tags with no classes to hang utilities on. These
+ * rules are the typographic contract for that markup — everything scoped under
+ * `.post-body` so they cannot leak into the product UI.
+ *
+ * Measure is capped near 68 characters. Long-form prose set wider is measurably
+ * harder to read, and this is the one place on the site where people read
+ * several hundred words in a row.
+ */
+.post-body {
+  color: var(--ink);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+
+.post-body > * + * {
+  margin-top: 1.35em;
+}
+
+.post-body h2,
+.post-body h3,
+.post-body h4 {
+  font-family: var(--font-display);
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  /* Anchored headings are jump targets; without this the sticky-free layout
+     still lands them flush against the viewport edge. */
+  scroll-margin-top: 2rem;
+}
+
+.post-body h2 {
+  margin-top: 2.5em;
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.post-body h3 {
+  margin-top: 2em;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.post-body h4 {
+  margin-top: 1.75em;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.post-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+
+.post-body a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.post-body strong {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.post-body ul,
+.post-body ol {
+  padding-left: 1.35em;
+}
+
+.post-body ul {
+  list-style: disc;
+}
+
+.post-body ol {
+  list-style: decimal;
+}
+
+.post-body li + li {
+  margin-top: 0.5em;
+}
+
+.post-body li::marker {
+  color: var(--subtle);
+}
+
+/**
+ * A pull quote, not a nested indent. The accent rule is the only decoration in
+ * an article body, which is what makes it read as emphasis.
+ */
+.post-body blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 0.15em 0 0.15em 1.15em;
+  color: var(--muted);
+  font-size: 1.0625rem;
+}
+
+.post-body blockquote > * + * {
+  margin-top: 0.75em;
+}
+
+.post-body code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  padding: 0.1em 0.35em;
+}
+
+.post-body pre {
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 0.625rem;
+  padding: 1rem 1.15rem;
+  overflow-x: auto;
+}
+
+.post-body pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+.post-body hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin-top: 2.5em;
+}
+
+.post-body img {
+  border-radius: 0.625rem;
+  border: 1px solid var(--line);
+}
+
+.post-body figcaption {
+  margin-top: 0.6em;
+  font-size: 0.875rem;
+  color: var(--subtle);
+}
+
+/* Tables get their own scroll container so a wide one never makes the page
+   scroll sideways — the same rule the product UI follows via ScrollableX. */
+.post-body table {
+  display: block;
+  overflow-x: auto;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.post-body th,
+.post-body td {
+  border: 1px solid var(--line);
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.post-body th {
+  background: var(--sunken);
+  font-weight: 650;
 }

@@ -9,6 +9,10 @@ from django.utils import timezone
 from apps.core.encryption import EncryptedTextField, fingerprint
 from apps.core.models import BaseModel
 
+# Pricing lives in its own module — what we charge is a different concern from
+# the record of a payment — but is re-exported here so Django discovers it.
+from .pricing import CostEstimate, Pricing  # noqa: F401
+
 
 class Gateway(models.TextChoices):
     PAYSTACK = "paystack", "Paystack"

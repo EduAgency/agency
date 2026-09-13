@@ -43,7 +43,11 @@ export const studentSession = {
 
 export const unpaidStudentSession = {
   ...studentSession,
-  student: { ...studentSession.student, has_platform_access: false, access_granted_at: null },
+  student: {
+    ...studentSession.student,
+    has_platform_access: false,
+    access_granted_at: null,
+  },
 };
 
 export const staffSession = {
@@ -56,7 +60,11 @@ export const staffSession = {
     role: "reviewer",
     email_verified_at: "2026-06-01T08:00:00Z",
   },
-  admin: { id: "ap-1", job_title: "Document reviewer", can_review_documents: true },
+  admin: {
+    id: "ap-1",
+    job_title: "Document reviewer",
+    can_review_documents: true,
+  },
 };
 
 const passportUpload = {
@@ -196,9 +204,30 @@ export const checklist = {
   source_version: 3,
   items: checklistItems,
   categories: [
-    { category: "Identity", slug: "identity", total: 2, verified: 1, uploaded: 2, percent: 50 },
-    { category: "Academic", slug: "academic", total: 1, verified: 0, uploaded: 1, percent: 0 },
-    { category: "Financial", slug: "financial", total: 1, verified: 0, uploaded: 0, percent: 0 },
+    {
+      category: "Identity",
+      slug: "identity",
+      total: 2,
+      verified: 1,
+      uploaded: 2,
+      percent: 50,
+    },
+    {
+      category: "Academic",
+      slug: "academic",
+      total: 1,
+      verified: 0,
+      uploaded: 1,
+      percent: 0,
+    },
+    {
+      category: "Financial",
+      slug: "financial",
+      total: 1,
+      verified: 0,
+      uploaded: 0,
+      percent: 0,
+    },
   ],
 };
 
@@ -220,7 +249,12 @@ export const applications = [
   },
   {
     id: "app-2",
-    school: { id: "sch-2", name: "University of Lagos", country: "Nigeria", logo: null },
+    school: {
+      id: "sch-2",
+      name: "University of Lagos",
+      country: "Nigeria",
+      logo: null,
+    },
     programme: { id: "pr-2", name: "MSc Economics" },
     intake: "2027",
     status: "draft",
@@ -236,7 +270,13 @@ export const schools = [
     id: "sch-1",
     name: "HWR Berlin",
     country_name: "Germany",
-    programmes: [{ id: "pr-1", name: "MSc International Business", intakes: ["Winter 2026"] }],
+    programmes: [
+      {
+        id: "pr-1",
+        name: "MSc International Business",
+        intakes: ["Winter 2026"],
+      },
+    ],
   },
   {
     id: "sch-2",
@@ -247,8 +287,18 @@ export const schools = [
 ];
 
 export const gateways = [
-  { gateway: "paystack", label: "Card or bank transfer", currency: "NGN", is_test_mode: true },
-  { gateway: "flutterwave", label: "Flutterwave", currency: "NGN", is_test_mode: true },
+  {
+    gateway: "paystack",
+    label: "Card or bank transfer",
+    currency: "NGN",
+    is_test_mode: true,
+  },
+  {
+    gateway: "flutterwave",
+    label: "Flutterwave",
+    currency: "NGN",
+    is_test_mode: true,
+  },
 ];
 
 export const payments = [
@@ -406,9 +456,27 @@ export const staffStudents = [
  */
 export const preferenceCentre = {
   channels: [
-    { channel: "email", label: "Email", available: true, connected: true, locked: true },
-    { channel: "whatsapp", label: "WhatsApp", available: true, connected: false, locked: false },
-    { channel: "telegram", label: "Telegram", available: true, connected: true, locked: false },
+    {
+      channel: "email",
+      label: "Email",
+      available: true,
+      connected: true,
+      locked: true,
+    },
+    {
+      channel: "whatsapp",
+      label: "WhatsApp",
+      available: true,
+      connected: false,
+      locked: false,
+    },
+    {
+      channel: "telegram",
+      label: "Telegram",
+      available: true,
+      connected: true,
+      locked: false,
+    },
   ],
   categories: [
     {
@@ -471,6 +539,449 @@ export const preferenceCentre = {
   whatsapp: { available: true, number: "+234 803 000 0001", opted_in: false },
 };
 
+// ---------------------------------------------------------------------------
+// Blog
+// ---------------------------------------------------------------------------
+
+/**
+ * An editor, not a reviewer.
+ *
+ * The composer needs `can_write_content` and `can_publish_content`, and the
+ * point of having a separate session is that the reviewer above must NOT be
+ * able to reach it — which is what `staffSession` proves on the same routes.
+ */
+export const editorSession = {
+  user: {
+    id: "u-staff-2",
+    email: "editor@nasuru.com",
+    first_name: "Ngozi",
+    last_name: "Eze",
+    full_name: "Ngozi Eze",
+    role: "admin",
+    email_verified_at: "2026-06-01T08:00:00Z",
+  },
+  admin: {
+    id: "ap-2",
+    job_title: "Editor",
+    can_write_content: true,
+    can_publish_content: true,
+  },
+};
+
+export const blogCategories = [
+  {
+    id: "cat-1",
+    name: "Documents",
+    slug: "documents",
+    description: "Transcripts, translations, references, passports.",
+    display_order: 20,
+    post_count: 2,
+  },
+  {
+    id: "cat-2",
+    name: "Money",
+    slug: "money",
+    description: "What studying abroad costs when nobody rounds the numbers down.",
+    display_order: 30,
+    post_count: 1,
+  },
+];
+
+export const blogTags = [
+  { id: "tag-1", name: "transcripts", slug: "transcripts", post_count: 2 },
+  {
+    id: "tag-2",
+    name: "proof of funds",
+    slug: "proof-of-funds",
+    post_count: 1,
+  },
+];
+
+export const postFaqs = [
+  {
+    id: "faq-1",
+    question: "How long does a transcript take?",
+    answer:
+      "It varies enormously by institution, and nobody can promise you a date. That is exactly why you request it first.",
+    display_order: 10,
+  },
+  {
+    id: "faq-2",
+    question: "Is a statement of result the same as a transcript?",
+    answer:
+      "No. A statement of result says what you scored; an official transcript is the full record, issued and sealed by the institution.",
+    display_order: 20,
+  },
+];
+
+/** The body arrives already rendered and sanitised — see apps/blog/rendering.py. */
+const renderedBody = [
+  "<p>Request your transcript before you look at a single school.</p>",
+  '<h2 id="what-you-are-asking-for">What you are actually asking for</h2>',
+  "<p>Two different things get called a transcript.</p>",
+  '<h2 id="why-it-sets-your-timeline">Why this document sets your whole timeline</h2>',
+  "<p>Work backwards from an intake and the transcript is first on the calendar.</p>",
+  "<ul><li>What they issue</li><li>Who they release it to</li><li>What it costs</li></ul>",
+].join("\n");
+
+export const blogPostCard = {
+  id: "post-1",
+  title: "Start with your transcript, not with the applications",
+  slug: "start-with-your-transcript",
+  excerpt:
+    "Almost everyone starts by looking at schools. The people who get in on time start by requesting their transcript.",
+  published_at: "2026-08-14T09:00:00Z",
+  reading_minutes: 6,
+  category: blogCategories[0],
+  tags: [blogTags[0]],
+  author: {
+    name: "Ngozi Eze",
+    job_title: "Admissions lead",
+    slug: "ngozi-eze",
+    avatar: null,
+    avatar_alt: "",
+    has_page: true,
+  },
+  hero_image: null,
+  hero_alt: "",
+  comment_count: 2,
+};
+
+export const blogPostCards = [
+  blogPostCard,
+  {
+    ...blogPostCard,
+    id: "post-2",
+    title: "Tuition-free is not the same as free",
+    slug: "tuition-free-is-not-free",
+    excerpt:
+      "A tuition-free place means the school does not charge you to teach you. Everything else about the year still costs money.",
+    category: blogCategories[1],
+    tags: [blogTags[1]],
+    reading_minutes: 5,
+  },
+];
+
+export const blogPostDetail = {
+  ...blogPostCard,
+  body_html: renderedBody,
+  toc: [
+    {
+      level: 2,
+      text: "What you are actually asking for",
+      anchor: "what-you-are-asking-for",
+    },
+    {
+      level: 2,
+      text: "Why this document sets your whole timeline",
+      anchor: "why-it-sets-your-timeline",
+    },
+  ],
+  updated_at: "2026-08-20T11:00:00Z",
+  seo_title: "Get your transcript first, then apply",
+  seo_description:
+    "The transcript is the slowest document in any international application and the one you cannot rush.",
+  canonical_url: "",
+  noindex: false,
+  ai_involvement: "draft",
+  related: [blogPostCards[1]],
+  hero_caption: "",
+  hero_credit: "",
+  faqs: postFaqs,
+  comments_open: true,
+  comments: [],
+  author_bio: null,
+};
+
+export const adminBlogPost = {
+  id: "post-1",
+  title: blogPostCard.title,
+  slug: blogPostCard.slug,
+  excerpt: blogPostCard.excerpt,
+  body: "Request your transcript before you look at a single school.\n\n## What you are actually asking for\n\nTwo different things get called a transcript.",
+  body_html: renderedBody,
+  toc: blogPostDetail.toc,
+  status: "draft",
+  published_at: null,
+  category_id: "cat-1",
+  tag_ids: ["tag-1"],
+  author_name: "Ngozi Eze",
+  published_by_name: "",
+  hero_image: null,
+  hero_alt: "",
+  meta_title: "Get your transcript first, then apply",
+  meta_description: blogPostDetail.seo_description,
+  canonical_url: "",
+  noindex: false,
+  focus_keyword: "how to get your transcript",
+  ai_involvement: "draft" as const,
+  ai_notes: "Claude drafted the first two sections; I rewrote the timeline and cut a figure.",
+  hero_caption: "",
+  hero_credit: "",
+  comments_closed: false,
+  comment_count: 4,
+  pending_comment_count: 2,
+  faqs: postFaqs,
+  style_override_reason: "",
+  reading_minutes: 6,
+  view_count: 128,
+  revision_count: 3,
+  created_at: "2026-08-10T09:00:00Z",
+  updated_at: "2026-08-20T11:00:00Z",
+};
+
+export const blogPreflight = {
+  ok: false,
+  blockers: ["Write an excerpt — it is what shows in listings and search results."],
+  warnings: ["No focus keyword set, so there is nothing to check the article against."],
+};
+
+export const blogRevisions = [
+  {
+    id: "rev-1",
+    title: blogPostCard.title,
+    created_at: "2026-08-20T10:45:00Z",
+    editor_name: "Ngozi Eze",
+    note: "Before edit",
+  },
+  {
+    id: "rev-2",
+    title: "Transcripts first",
+    created_at: "2026-08-10T09:05:00Z",
+    editor_name: "Ngozi Eze",
+    note: "Created",
+  },
+];
+
+/**
+ * The blog settings, as the staff endpoint returns them.
+ *
+ * Every default here matches the model's, so a settings screen scanned against
+ * this fixture is the screen an editor actually opens on day one.
+ */
+export const blogSettings = {
+  posts_per_page: 12,
+  homepage_show_latest: true,
+  homepage_article_count: 3,
+  homepage_section_title: "Questions people ask us before they pay",
+  listing_layout: "featured" as const,
+  show_reading_time: true,
+  show_author_byline: true,
+  show_published_date: true,
+  related_post_count: 3,
+
+  excerpt_source: "manual_then_auto" as const,
+  excerpt_length: 240,
+  excerpt_required_to_publish: true,
+  read_more_label: "Read the guide",
+
+  featured_image_required: false,
+  featured_image_aspect: "16:9",
+  show_featured_on_listing: true,
+  show_featured_on_detail: true,
+  default_featured_image: null,
+
+  comments_enabled: true,
+  comments_require_approval: true,
+  comments_require_email: true,
+  comments_allow_replies: true,
+  comments_close_after_days: 0,
+  comments_notify_staff: true,
+  comments_max_links: 1,
+  comments_min_seconds: 4,
+  comments_blocklist: "",
+  comments_per_hour_per_ip: 5,
+
+  author_pages_enabled: true,
+  show_author_bio_on_article: true,
+
+  meta_title_template: "{title} — {site}",
+  default_meta_description: "",
+  default_og_image: null,
+  twitter_site: "",
+  google_site_verification: "",
+  bing_site_verification: "",
+  analytics_measurement_id: "",
+  feed_full_text: false,
+  feed_item_count: 20,
+  sitemap_include_authors: true,
+  noindex_tag_pages: true,
+
+  featured_aspect_ratio: 16 / 9,
+  updated_at: "2026-09-01T09:00:00Z",
+};
+
+export const authorProfile = {
+  id: "ap-author-1",
+  user: "u-staff-2",
+  user_email: "editor@nasuru.com",
+  display_name: "Ngozi Eze",
+  slug: "ngozi-eze",
+  headline: "Admissions lead",
+  bio: "Ngozi has sat with applicants through every stage of this process.",
+  credentials: "",
+  avatar: null,
+  avatar_alt: "",
+  website: "",
+  linkedin_url: "https://www.linkedin.com/in/example",
+  x_url: "",
+  is_public: true,
+  show_in_directory: true,
+  post_count: 2,
+  has_public_page: true,
+  created_at: "2026-07-01T09:00:00Z",
+  updated_at: "2026-08-20T09:00:00Z",
+};
+
+/** One of each interesting state: flagged, clean, and an agency reply. */
+export const adminComments = [
+  {
+    id: "c-1",
+    post_title: blogPostCard.title,
+    post_slug: blogPostCard.slug,
+    author_name: "Ada Obi",
+    email: "ada@example.com",
+    website: "",
+    body: "How long does a transcript usually take from a Nigerian polytechnic?",
+    status: "pending" as const,
+    flagged_reason: "",
+    is_pinned: false,
+    is_from_staff: false,
+    parent: null,
+    parent_body: "",
+    moderated_by_name: "",
+    moderated_at: null,
+    ip_address: "102.89.0.1",
+    created_at: "2026-08-21T08:30:00Z",
+  },
+  {
+    id: "c-2",
+    post_title: blogPostCard.title,
+    post_slug: blogPostCard.slug,
+    author_name: "Quick Visa Agent",
+    email: "spam@example.com",
+    website: "https://example.com",
+    body: "We can get you a cheap visa fast, message https://a.example https://b.example",
+    status: "pending" as const,
+    flagged_reason: "3 links (limit 1); blocked phrase “cheap visa”",
+    is_pinned: false,
+    is_from_staff: false,
+    parent: null,
+    parent_body: "",
+    moderated_by_name: "",
+    moderated_at: null,
+    ip_address: "10.0.0.9",
+    created_at: "2026-08-21T09:10:00Z",
+  },
+  {
+    id: "c-3",
+    post_title: blogPostCard.title,
+    post_slug: blogPostCard.slug,
+    author_name: "Ngozi Eze",
+    email: "",
+    website: "",
+    body: "It varies by institution, and nobody can promise a date — start it first.",
+    status: "approved" as const,
+    flagged_reason: "",
+    is_pinned: true,
+    is_from_staff: true,
+    parent: "c-1",
+    parent_body: "How long does a transcript usually take from a Nigerian polytechnic?",
+    moderated_by_name: "Ngozi Eze",
+    moderated_at: "2026-08-21T09:20:00Z",
+    ip_address: null,
+    created_at: "2026-08-21T09:20:00Z",
+  },
+];
+
+export const commentSummaryCounts = { pending: 2, approved: 4, spam: 1, rejected: 0 };
+
+// ---------------------------------------------------------------------------
+// Pricing
+// ---------------------------------------------------------------------------
+
+/**
+ * The public pricing response.
+ *
+ * The fee here is the one the fixture *charges*, so a test that reads the
+ * checkout button and a test that reads the API are looking at the same number —
+ * which is the whole point of the pricing layer.
+ */
+export const publicPricing = {
+  access_fee: {
+    amount: "5000.00",
+    major_units: 5000,
+    currency: "NGN",
+    symbol: "₦",
+    formatted: "₦5,000",
+    ascii: "NGN 5,000",
+    note: "Covers everything from the first shortlist to landing on campus.",
+  },
+  costs: [
+    {
+      id: "ce-1",
+      label: "Proof of funds",
+      amount: "₦2.5m to ₦4m, held for six months",
+      note: "Held before the visa, not spent.",
+      is_verified: true,
+      display_order: 10,
+    },
+    {
+      id: "ce-2",
+      label: "Visa and health charges",
+      // The stale state, which is the one worth exercising: the figure is
+      // withheld and the label says so.
+      amount: "Ask us — this changes",
+      note: "Paid to the embassy, never to us.",
+      is_verified: false,
+      display_order: 20,
+    },
+  ],
+  unverified_label: "Ask us — this changes",
+};
+
+export const adminPricing = {
+  access_fee_amount: "5000.00",
+  access_fee_currency: "NGN",
+  access_fee_note: "Covers everything from the first shortlist to landing on campus.",
+  estimate_stale_after_days: 120,
+  formatted_access_fee: "₦5,000",
+  ascii_access_fee: "NGN 5,000",
+  currency_symbol: "₦",
+  updated_at: "2026-09-01T09:00:00Z",
+};
+
+export const adminCostEstimates = [
+  {
+    id: "ce-1",
+    label: "Proof of funds",
+    amount_display: "₦2.5m to ₦4m, held for six months",
+    note: "Held before the visa, not spent.",
+    verified_on: "2026-09-01",
+    verified_source: "Embassy guidance, checked by hand",
+    display_order: 10,
+    is_active: true,
+    public_amount: "₦2.5m to ₦4m, held for six months",
+    is_stale: false,
+    created_at: "2026-07-01T09:00:00Z",
+    updated_at: "2026-09-01T09:00:00Z",
+  },
+  {
+    id: "ce-2",
+    label: "Visa and health charges",
+    amount_display: "₦180,000",
+    note: "Paid to the embassy, never to us.",
+    verified_on: "2025-01-04",
+    verified_source: "",
+    display_order: 20,
+    is_active: true,
+    public_amount: "Ask us — this changes",
+    is_stale: true,
+    created_at: "2026-07-01T09:00:00Z",
+    updated_at: "2026-07-01T09:00:00Z",
+  },
+];
+
 /**
  * Read by `backend/tests/test_frontend_contract.py`.
  *
@@ -486,4 +997,17 @@ export const FIELD_CONTRACT = {
   "apps.applications.serializers.StudentDocumentSerializer": Object.keys(documents[0]),
   "apps.applications.serializers.DocumentUploadSerializer": Object.keys(passportUpload),
   "apps.accounts.serializers.StudentProfileSerializer": Object.keys(staffStudents[0]),
+  "apps.blog.serializers.PostListSerializer": Object.keys(blogPostCard),
+  "apps.blog.serializers.PostDetailSerializer": Object.keys(blogPostDetail),
+  "apps.blog.serializers.AdminPostSerializer": Object.keys(adminBlogPost),
+  "apps.blog.serializers.CategorySerializer": Object.keys(blogCategories[0]),
+  "apps.blog.serializers.TagSerializer": Object.keys(blogTags[0]),
+  "apps.blog.serializers.PostRevisionSerializer": Object.keys(blogRevisions[0]),
+  "apps.blog.serializers.BlogSettingsSerializer": Object.keys(blogSettings),
+  "apps.blog.serializers.AuthorProfileSerializer": Object.keys(authorProfile),
+  "apps.blog.serializers.AdminCommentSerializer": Object.keys(adminComments[0]),
+  "apps.blog.serializers.PostFaqSerializer": Object.keys(postFaqs[0]),
+  "apps.payments.pricing_api.PricingSerializer": Object.keys(adminPricing),
+  "apps.payments.pricing_api.AdminCostEstimateSerializer": Object.keys(adminCostEstimates[0]),
+  "apps.payments.pricing_api.CostEstimateSerializer": Object.keys(publicPricing.costs[0]),
 } as const;

@@ -58,8 +58,16 @@ for (const file of walk(srcDir)) {
   }
 }
 
+const PRICING_NOTE = [
+  '  Prices are not checked here. They moved out of company.ts into the',
+  '  database (apps.payments.pricing), so this script cannot see them - run',
+  '  `make pricing`, or `make pricing ARGS=--strict` in CI, to catch an',
+  '  unverified cost figure before it reaches a page.',
+].join('\n');
+
 if (findings.length === 0) {
   console.log("\n  Launch check: no unmade decisions remain in published pages.\n");
+  console.log(PRICING_NOTE);
   process.exit(0);
 }
 
@@ -78,5 +86,6 @@ if (GATING) {
   process.exit(1);
 }
 
+console.log(PRICING_NOTE);
 console.log("\n  (Not gating: this is a development build. Run with --strict to gate.)\n");
 process.exit(0);

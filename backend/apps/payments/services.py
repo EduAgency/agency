@@ -22,6 +22,7 @@ from apps.core import audit
 
 from .gateways.base import GatewayError, get_gateway
 from .models import Payment, PaymentGatewayConfig, Refund, WebhookEvent
+from .pricing import Pricing
 
 logger = logging.getLogger(__name__)
 
@@ -48,14 +49,17 @@ def initiate_payment(
 ) -> tuple[Payment, str]:
     """Create a pending Payment and hand back the gateway's checkout URL.
 
-    The amount is decided here, server-side, from configuration — never accepted
-    from the client, or a student could pay ₦1 for access.
+    The amount is decided here, server-side, from the `Pricing` row — never
+    accepted from the client, or a student could pay ₦1 for access. It is the
+    same row the checkout page and the landing page read, so the number on the
+    button and the number actually charged cannot drift apart.
     """
-    currency = (currency or settings.ACCESS_FEE_CURRENCY).upper()
+    pricing = Pricing.load()
+    currency = (currency or pricing.access_fee_currency).upper()
     if amount is None:
         if purpose != Payment.Purpose.ACCESS_FEE:
             raise ValidationError("An amount is required for this payment purpose.")
-        amount = Decimal(settings.ACCESS_FEE_AMOUNT)
+        amount = pricing.access_fee_amount
 
     configs = PaymentGatewayConfig.active_for(currency)
     if gateway:

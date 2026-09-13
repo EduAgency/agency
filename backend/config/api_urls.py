@@ -14,9 +14,12 @@ from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 
 from apps.accounts import views as accounts_views
 from apps.applications import views as application_views
+from apps.blog import api as blog_views
+from apps.blog import feeds as blog_feeds
 from apps.forms_engine import views as form_views
 from apps.notifications import api as notification_views
 from apps.payments import api as payment_views
+from apps.payments import pricing_api
 from apps.referrals import views as referral_views
 from apps.schools import views as school_views
 
@@ -29,6 +32,16 @@ router.register("schools", school_views.SchoolViewSet, basename="school")
 router.register("programmes", school_views.ProgrammeViewSet, basename="programme")
 router.register("countries", school_views.CountryViewSet, basename="country")
 router.register("requirement-categories", school_views.RequirementCategoryViewSet, basename="requirement-category")
+
+# --- public / unauthenticated ------------------------------------------------
+# The blog is the marketing site's content source and must be reachable by a
+# crawler, so it sits on its own router with AllowAny rather than inside the
+# student-facing one.
+public_router = DefaultRouter()
+public_router.register("posts", blog_views.PublicPostViewSet, basename="blog-post")
+public_router.register("categories", blog_views.PublicCategoryViewSet, basename="blog-category")
+public_router.register("tags", blog_views.PublicTagViewSet, basename="blog-tag")
+public_router.register("authors", blog_views.PublicAuthorViewSet, basename="blog-author")
 
 # --- staff ------------------------------------------------------------------
 admin_router = DefaultRouter()
@@ -46,6 +59,13 @@ admin_router.register("referral-codes", referral_views.AdminReferralCodeViewSet,
 admin_router.register("reward-rules", referral_views.AdminRewardRuleViewSet, basename="admin-reward-rule")
 admin_router.register("rewards", referral_views.AdminRewardViewSet, basename="admin-reward")
 admin_router.register("payouts", referral_views.AdminPayoutViewSet, basename="admin-payout")
+admin_router.register("blog/posts", blog_views.AdminPostViewSet, basename="admin-blog-post")
+admin_router.register("blog/categories", blog_views.AdminCategoryViewSet, basename="admin-blog-category")
+admin_router.register("blog/tags", blog_views.AdminTagViewSet, basename="admin-blog-tag")
+admin_router.register("blog/authors", blog_views.AdminAuthorViewSet, basename="admin-blog-author")
+admin_router.register("blog/comments", blog_views.AdminCommentViewSet, basename="admin-blog-comment")
+admin_router.register("blog/faqs", blog_views.AdminFaqViewSet, basename="admin-blog-faq")
+admin_router.register("cost-estimates", pricing_api.AdminCostEstimateViewSet, basename="admin-cost-estimate")
 
 auth_patterns = [
     path("signup/", accounts_views.SignupView.as_view(), name="signup"),
@@ -85,6 +105,10 @@ urlpatterns = [
     path("my/submissions/", form_views.MySubmissionsView.as_view(), name="my-submissions"),
 
     # Payments
+    # What everything costs. Unauthenticated: the landing page, checkout, the
+    # policy pages and the share card all render from this one response, and a
+    # price behind a token is a price that gets hardcoded somewhere else.
+    path("pricing/", pricing_api.PublicPricingView.as_view(), name="pricing"),
     path("payments/gateways/", payment_views.GatewayOptionsView.as_view(), name="gateway-options"),
     path("payments/initiate/", payment_views.InitiatePaymentView.as_view(), name="initiate-payment"),
     path("payments/verify/", payment_views.VerifyPaymentView.as_view(), name="verify-payment"),
@@ -101,6 +125,23 @@ urlpatterns = [
     path("referrals/check/", referral_views.CheckReferralCodeView.as_view(), name="check-referral"),
     path("referrals/mine/", referral_views.MyReferralsView.as_view(), name="my-referrals"),
     path("referrals/payout/", referral_views.RequestPayoutView.as_view(), name="request-payout"),
+
+    # Blog — public read, plus the two feeds and the sitemap source.
+    path("blog/", include(public_router.urls)),
+    path("blog/sitemap/", blog_views.SitemapIndexView.as_view(), name="blog-sitemap"),
+    # The public slice of the editable blog settings — layout, labels, whether a
+    # byline shows. The frontend reads this to render correctly.
+    path("blog/settings/", blog_views.BlogSettingsView.as_view(), name="blog-settings"),
+    path("blog/rss.xml", blog_feeds.RssFeed(), name="blog-rss"),
+    path("blog/atom.xml", blog_feeds.AtomFeed(), name="blog-atom"),
+
+    # Blog AI assist — staff only, throttled, and it never writes.
+    # The access fee sits with whoever holds the gateway keys, not with everyone
+    # who can edit a page — it is what a student is charged.
+    path("admin/pricing/", pricing_api.AdminPricingView.as_view(), name="admin-pricing"),
+    path("admin/blog/settings/", blog_views.AdminBlogSettingsView.as_view(), name="admin-blog-settings"),
+    path("admin/blog/ai/", blog_views.AiAssistView.as_view(), name="blog-ai-assist"),
+    path("admin/blog/ai/status/", blog_views.AiStatusView.as_view(), name="blog-ai-status"),
 
     path("", include(router.urls)),
     path("admin/", include(admin_router.urls)),

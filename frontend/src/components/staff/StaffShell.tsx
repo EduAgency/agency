@@ -18,6 +18,8 @@ import { CommandPalette, useCommandPalette } from "@/components/staff/CommandPal
 const NAV = [
   { href: "/staff/review", label: "Review queue" },
   { href: "/staff/students", label: "Students" },
+  { href: "/staff/blog", label: "Guides" },
+  { href: "/staff/pricing", label: "Prices" },
 ];
 
 const STAFF_ROLES = ["counsellor", "reviewer", "finance", "admin", "superadmin"];
@@ -66,7 +68,12 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
             </Link>
 
             <nav aria-label="Staff sections">
-              <ul className="flex flex-wrap gap-x-5 text-sm">
+              {/* `gap-y-1` and the links' own vertical padding keep every target
+                  at least 24px with clear space around it (WCAG 2.5.8). Adding a
+                  fourth section made the row wrap on a phone, and without this
+                  the wrapped links sat close enough to overlap each other's
+                  touch targets — axe caught it as target-offset. */}
+              <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
                 {NAV.map((item) => {
                   const active = pathname.startsWith(item.href);
                   return (
@@ -76,8 +83,8 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
                         aria-current={active ? "page" : undefined}
                         className={
                           active
-                            ? "font-medium text-ink underline underline-offset-8"
-                            : "text-muted hover:text-ink"
+                            ? "block py-1.5 font-medium text-ink underline underline-offset-8"
+                            : "block py-1.5 text-muted hover:text-ink"
                         }
                       >
                         {item.label}

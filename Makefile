@@ -118,6 +118,18 @@ migrations: ## Generate migrations for model changes
 seed: ## Load the demo dataset, including a clickable student
 	$(MANAGE) seed_demo --with-student
 
+.PHONY: pricing
+pricing: ## Show the live access fee and flag stale cost estimates (ARGS=--strict)
+	$(MANAGE) pricing_report $(ARGS)
+
+.PHONY: pricing-seed
+pricing-seed: ## Create the pricing row and the student-cost estimates
+	$(MANAGE) seed_pricing
+
+.PHONY: blog-seed
+blog-seed: ## Create the blog's categories, tags and three launch articles (ARGS=--draft)
+	$(MANAGE) seed_blog $(ARGS)
+
 .PHONY: storage-check
 storage-check: ## Verify R2 credentials with a real write/read/sign/delete round trip
 	$(MANAGE) check_storage $(ARGS)

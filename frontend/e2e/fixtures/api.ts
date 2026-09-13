@@ -43,6 +43,11 @@ function resolve(pathname: string, search: URLSearchParams, session: Json): Json
   }
   if (pathname === "/api/documents/") return paginate(seed.documents);
   if (pathname === "/api/schools/") return paginate(seed.schools);
+  // Pricing. Read by checkout and signup in the browser; the public pages read
+  // it on the server, where page.route() cannot see it.
+  if (pathname === "/api/pricing/") return seed.publicPricing;
+  if (pathname === "/api/admin/pricing/") return seed.adminPricing;
+  if (pathname === "/api/admin/cost-estimates/") return seed.adminCostEstimates;
   if (pathname === "/api/payments/gateways/") return seed.gateways;
   if (pathname === "/api/payments/mine/") return seed.payments;
   if (pathname === "/api/payments/verify/") return seed.payments[0];
@@ -51,7 +56,11 @@ function resolve(pathname: string, search: URLSearchParams, session: Json): Json
   if (pathname === "/api/notifications/quiet-hours/") return { detail: "Saved." };
   if (pathname === "/api/notifications/whatsapp/") return { detail: "Saved." };
   if (pathname === "/api/notifications/telegram/") {
-    return { url: "https://t.me/nasuru_bot?start=example", bot_username: "nasuru_bot", expires_in_seconds: 900 };
+    return {
+      url: "https://t.me/nasuru_bot?start=example",
+      bot_username: "nasuru_bot",
+      expires_in_seconds: 900,
+    };
   }
   if (pathname === "/api/forms/student-intake/") return seed.intakeForm;
   if (pathname === "/api/my/submissions/") return [];
@@ -84,8 +93,38 @@ function resolve(pathname: string, search: URLSearchParams, session: Json): Json
     return seed.staffStudents.find((s) => s.id === id) ?? seed.staffStudents[0];
   }
   if (/^\/api\/checklist-items\/[^/]+\/review\/$/.test(pathname)) {
-    return { ...seed.checklistItems[0], status: "verified", status_display: "Verified" };
+    return {
+      ...seed.checklistItems[0],
+      status: "verified",
+      status_display: "Verified",
+    };
   }
+
+  // --- blog ---------------------------------------------------------------
+  // Only the staff composer is covered here. The public blog pages fetch from
+  // the API on the *server*, which page.route() cannot see — so those are
+  // scanned in accessibility.spec.ts in the state they render when the API is
+  // unreachable, which is a real state they have to handle.
+  if (pathname === "/api/admin/blog/ai/status/") {
+    return { enabled: true, model: "claude-opus-5" };
+  }
+  if (pathname === "/api/admin/blog/settings/") return seed.blogSettings;
+  if (pathname === "/api/admin/blog/authors/me/") return seed.authorProfile;
+  if (pathname === "/api/admin/blog/authors/") return [seed.authorProfile];
+  if (pathname === "/api/admin/blog/comments/summary/") return seed.commentSummaryCounts;
+  if (pathname === "/api/admin/blog/comments/") {
+    const status = search.get("status") ?? "pending";
+    const rows =
+      status === "all" ? seed.adminComments : seed.adminComments.filter((c) => c.status === status);
+    return paginate(rows);
+  }
+  if (pathname === "/api/admin/blog/faqs/") return seed.postFaqs;
+  if (pathname === "/api/admin/blog/categories/") return seed.blogCategories;
+  if (pathname === "/api/admin/blog/tags/") return seed.blogTags;
+  if (pathname === "/api/admin/blog/posts/") return paginate([seed.adminBlogPost]);
+  if (/^\/api\/admin\/blog\/posts\/[^/]+\/preflight\/$/.test(pathname)) return seed.blogPreflight;
+  if (/^\/api\/admin\/blog\/posts\/[^/]+\/revisions\/$/.test(pathname)) return seed.blogRevisions;
+  if (/^\/api\/admin\/blog\/posts\/[^/]+\/$/.test(pathname)) return seed.adminBlogPost;
 
   return null;
 }
@@ -129,6 +168,7 @@ export const test = base.extend<{
   studentPage: Page;
   unpaidPage: Page;
   staffPage: Page;
+  editorPage: Page;
 }>({
   studentPage: async ({ page }, use) => {
     await installApi(page, seed.studentSession, seed.STUDENT_TOKEN);
@@ -143,6 +183,12 @@ export const test = base.extend<{
 
   staffPage: async ({ page }, use) => {
     await installApi(page, seed.staffSession, seed.STAFF_TOKEN);
+    await use(page);
+  },
+
+  /** Staff who can write and publish — the blog composer. */
+  editorPage: async ({ page }, use) => {
+    await installApi(page, seed.editorSession, seed.STAFF_TOKEN);
     await use(page);
   },
 });

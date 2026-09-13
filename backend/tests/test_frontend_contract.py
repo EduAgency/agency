@@ -105,6 +105,16 @@ def test_contract_covers_the_serializers_the_fixtures_imitate():
         "apps.applications.serializers.StudentDocumentSerializer",
         "apps.applications.serializers.DocumentUploadSerializer",
         "apps.accounts.serializers.StudentProfileSerializer",
+        "apps.blog.serializers.PostListSerializer",
+        "apps.blog.serializers.PostDetailSerializer",
+        "apps.blog.serializers.AdminPostSerializer",
+        "apps.blog.serializers.CategorySerializer",
+        "apps.blog.serializers.TagSerializer",
+        "apps.blog.serializers.PostRevisionSerializer",
+        "apps.blog.serializers.BlogSettingsSerializer",
+        "apps.blog.serializers.AuthorProfileSerializer",
+        "apps.blog.serializers.AdminCommentSerializer",
+        "apps.blog.serializers.PostFaqSerializer",
     }
     missing = expected - set(contract)
     assert not missing, f"FIELD_CONTRACT no longer covers: {sorted(missing)}"

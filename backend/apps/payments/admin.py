@@ -10,6 +10,7 @@ from .models import (
     Refund,
     WebhookEvent,
 )
+from .pricing import CostEstimate, Pricing
 from .tasks import process_webhook_event_task, reconcile_gateway
 
 
@@ -177,3 +178,74 @@ class ReconciliationRunAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(Pricing)
+class PricingAdmin(admin.ModelAdmin):
+    """The access fee. One row, and the only place it is written down.
+
+    Not deletable, and only addable once. Everything that quotes a price — the
+    landing page, the checkout button, the policy pages, the blog's own
+    house-style scan — reads this row, which is the point: they cannot disagree.
+    """
+
+    fieldsets = (
+        (
+            "What we charge",
+            {
+                "fields": (
+                    "access_fee_amount",
+                    "access_fee_currency",
+                    "access_fee_note",
+                ),
+                "description": (
+                    "Changing this changes what the gateway charges AND what every page says, "
+                    "at the same time. There is no second place to update."
+                ),
+            },
+        ),
+        (
+            "Cost estimates",
+            {
+                "fields": ("estimate_stale_after_days",),
+                "description": (
+                    "How long a student-cost figure stays trustworthy. Past this, the row shows "
+                    "“ask us” instead of its number — automatically."
+                ),
+            },
+        ),
+    )
+    readonly_fields = ()
+
+    def has_add_permission(self, request) -> bool:
+        return not Pricing.objects.exists()
+
+    def has_delete_permission(self, request, obj=None) -> bool:
+        return False
+
+
+@admin.register(CostEstimate)
+class CostEstimateAdmin(admin.ModelAdmin):
+    """What the student spends that is not ours.
+
+    `verified_on` is the field that matters. A figure nobody has checked recently
+    stops being shown, so the honest failure mode is "ask us" rather than a
+    number from two years ago that somebody budgets against.
+    """
+
+    list_display = ("label", "amount_display", "verified_on", "shown_to_students", "is_active")
+    list_filter = ("is_active",)
+    list_editable = ("is_active",)
+    fields = (
+        "label",
+        "amount_display",
+        "note",
+        "verified_on",
+        "verified_source",
+        "display_order",
+        "is_active",
+    )
+
+    @admin.display(description="shown to students", boolean=False)
+    def shown_to_students(self, obj) -> str:
+        return obj.public_amount

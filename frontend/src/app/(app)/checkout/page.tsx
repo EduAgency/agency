@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError } from "@/lib/api";
+import { usePricing } from "@/lib/usePricing";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { initiatePayment, listGateways } from "@/lib/payments";
 import { Alert, Button } from "@/components/ui";
@@ -18,6 +19,9 @@ const INCLUDED = [
 export default function CheckoutPage() {
   const router = useRouter();
   const { session, loading, hasAccess } = useSession();
+  // The fee comes from /api/pricing/, the same row the gateway charges from.
+  const { pricing, ready: priceReady } = usePricing();
+  const fee = pricing.access_fee;
   const [gateways, setGateways] = useState<GatewayOption[]>([]);
   const [selected, setSelected] = useState<string>("");
   const [error, setError] = useState("");
@@ -57,19 +61,23 @@ export default function CheckoutPage() {
     }
   }
 
-  if (loading) return <div className="p-12 text-sm text-subtle">Loading…</div>;
+  // The price is never rendered from a constant: the button and the gateway read
+  // the same row, so they cannot show different numbers.
+  if (loading || !priceReady) {
+    return <div className="p-12 text-sm text-subtle">Loading…</div>;
+  }
 
   return (
     <div className="mx-auto max-w-lg px-6 py-12">
       <h1 className="text-2xl font-semibold text-ink">Activate your account</h1>
       <p className="mt-1 text-sm text-muted">
-        One payment of ₦5,000. This is the only fee we charge for the platform.
+        One payment of {fee.formatted}. This is the only fee we charge for the platform.
       </p>
 
       <section className="mt-8 rounded-xl border border-line p-6">
         <div className="flex items-baseline justify-between">
           <span className="text-sm font-medium text-muted">Platform access</span>
-          <span className="text-2xl font-semibold text-ink">₦5,000</span>
+          <span className="text-2xl font-semibold text-ink">{fee.formatted}</span>
         </div>
 
         <ul className="mt-5 space-y-2 text-sm text-muted">
@@ -137,7 +145,7 @@ export default function CheckoutPage() {
         </div>
       ) : (
         <Button onClick={pay} disabled={busy || !gateways.length} className="mt-6 w-full">
-          {busy ? "Taking you to checkout…" : "Pay ₦5,000"}
+          {busy ? "Taking you to checkout…" : `Pay ${fee.formatted}`}
         </Button>
       )}
     </div>

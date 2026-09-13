@@ -247,6 +247,10 @@ class AdminProfile(BaseModel):
     can_manage_team = models.BooleanField(default=False)
     can_view_audit_log = models.BooleanField(default=False)
     can_export_data = models.BooleanField(default=False)
+    # Blog. Split deliberately: a writer drafts and uses the AI assist, an
+    # editor decides what goes on the public site. Publishing carries a name.
+    can_write_content = models.BooleanField(default=False)
+    can_publish_content = models.BooleanField(default=False)
 
     PERMISSION_FIELDS = [
         "can_manage_students",
@@ -262,10 +266,17 @@ class AdminProfile(BaseModel):
         "can_manage_team",
         "can_view_audit_log",
         "can_export_data",
+        "can_write_content",
+        "can_publish_content",
     ]
 
     ROLE_DEFAULTS = {
-        User.Role.COUNSELLOR: ["can_manage_students", "can_review_documents", "can_view_reports"],
+        User.Role.COUNSELLOR: [
+            "can_manage_students",
+            "can_review_documents",
+            "can_view_reports",
+            "can_write_content",
+        ],
         User.Role.REVIEWER: ["can_review_documents"],
         User.Role.FINANCE: ["can_view_payments", "can_issue_refunds", "can_approve_payouts", "can_view_reports"],
         User.Role.ADMIN: [
@@ -277,6 +288,8 @@ class AdminProfile(BaseModel):
             "can_manage_referrals",
             "can_view_reports",
             "can_view_audit_log",
+            "can_write_content",
+            "can_publish_content",
         ],
         User.Role.SUPERADMIN: PERMISSION_FIELDS,
     }

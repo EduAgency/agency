@@ -38,6 +38,38 @@ def isolated_cache(settings):
     cache.clear()
 
 
+@pytest.fixture(autouse=True)
+def isolated_singletons():
+    """Clear the cached singleton rows between tests.
+
+    `Pricing.load()` and `BlogSettings.load()` cache, and a cache entry outlives
+    a transaction rollback — so a test that raises the access fee would raise it
+    for every test that ran afterwards, in a different file, with no visible
+    connection.
+    """
+    from django.core.cache import cache
+
+    keys = ("payments:pricing", "blog:settings")
+    for key in keys:
+        cache.delete(key)
+    yield
+    for key in keys:
+        cache.delete(key)
+
+
+@pytest.fixture
+def access_fee():
+    """The live access fee, for tests that need to quote it.
+
+    A test must never hardcode the price: that is the bug this whole layer
+    exists to remove, and a test that hardcodes it would start failing the moment
+    somebody legitimately changed the fee.
+    """
+    from apps.payments.pricing import Pricing
+
+    return Pricing.load()
+
+
 @pytest.fixture
 def no_throttling(settings):
     """For tests about something other than rate limiting."""

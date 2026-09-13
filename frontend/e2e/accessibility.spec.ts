@@ -21,10 +21,22 @@ const PUBLIC_ROUTES = [
   { path: "/refund-policy", name: "Refund policy" },
   { path: "/contact", name: "Contact" },
   { path: "/no-such-page", name: "404" },
+  // The blog index fetches from the API on the *server*, so page.route() cannot
+  // seed it. What it renders here is its empty state, which is exactly what a
+  // visitor sees if the API is briefly unreachable — a state worth scanning on
+  // its own account. The populated article layout is covered by the composer's
+  // preview, which renders the same `.post-body` markup.
+  { path: "/blog", name: "Blog index (empty state)" },
 ];
 
 function scan(page: import("@playwright/test").Page) {
-  return new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]);
+  return new AxeBuilder({ page }).withTags([
+    "wcag2a",
+    "wcag2aa",
+    "wcag21a",
+    "wcag21aa",
+    "wcag22aa",
+  ]);
 }
 
 for (const scheme of ["light", "dark"] as const) {

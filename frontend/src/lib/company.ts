@@ -48,18 +48,16 @@ export const DATA_PROTECTION = {
   responseDays: 30,
 } as const;
 
-export const ACCESS_FEE = {
-  amount: 5000,
-  currency: "NGN",
-  /** Rendered through Intl so the symbol and grouping are never hand-typed. */
-  get formatted() {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: this.currency,
-      maximumFractionDigits: 0,
-    }).format(this.amount);
-  },
-} as const;
+/**
+ * The access fee is NOT here any more.
+ *
+ * It lives in the database (`apps.payments.pricing.Pricing`) and reaches the
+ * frontend through `/api/pricing/` — see `@/lib/pricing`. It moved because there
+ * were four copies of it and they were allowed to disagree: the gateway charged
+ * one number while the checkout button showed another.
+ *
+ * Nothing in this file may state a price. If you need one, fetch it.
+ */
 
 /**
  * The accreditation the landing page leads with.
@@ -111,19 +109,14 @@ export const SERVICES = [
 ] as const;
 
 /**
- * Costs a tuition-free place does NOT remove.
+ * The student-cost figures are NOT here any more either.
  *
- * On the page because "free" is the word that gets students into trouble: they
- * budget for zero and discover the proof-of-funds requirement weeks before the
- * intake. Figures stay bracketed until someone checks them against the
- * current year — a stale number here is worse than none.
+ * They are `CostEstimate` rows, served by `/api/pricing/`. The reason is the
+ * comment that used to sit here: a stale number is worse than none. A database
+ * row can carry the date somebody last checked it and stop showing the figure
+ * by itself once that goes out of date — a constant in a TypeScript file cannot,
+ * and would sit there looking authoritative for two years.
  */
-export const REAL_COSTS = [
-  { item: "Proof of funds", amount: `${PENDING} current figure`, note: "Held before the visa, not spent — but you must be able to show it." },
-  { item: "Visa and health charges", amount: `${PENDING} current figure`, note: "Paid to the embassy, never to us." },
-  { item: "Flights and first month", amount: `${PENDING} current figure`, note: "Before any student job starts paying." },
-  { item: "Language or English test", amount: `${PENDING} current figure`, note: "Only where the university actually requires one." },
-] as const;
 
 export const REFUND = {
   /** Full refund inside this window, provided no document has been reviewed. */
@@ -198,7 +191,11 @@ export const SUB_PROCESSORS = [
     location: `${PENDING} region`,
   },
   // Only reached for students who connect them; see the preference centre.
-  { name: "Meta (WhatsApp Business)", purpose: "Optional WhatsApp updates", location: "United States" },
+  {
+    name: "Meta (WhatsApp Business)",
+    purpose: "Optional WhatsApp updates",
+    location: "United States",
+  },
   { name: "Telegram", purpose: "Optional Telegram updates", location: "United Arab Emirates" },
 ] as const;
 

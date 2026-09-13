@@ -6,6 +6,8 @@ shows. These are the tests that matter most: the data is passports, transcripts
 and payment credentials.
 """
 
+from decimal import Decimal
+
 import pytest
 
 from apps.applications.models import ChecklistItemInstance
@@ -158,8 +160,16 @@ class TestFormAudience:
 
 @pytest.mark.django_db
 class TestPaymentEndpoints:
-    def test_the_client_cannot_choose_the_amount(self, as_student, gateway_config, student, monkeypatch):
-        """A posted amount is ignored — the server prices the access fee."""
+    def test_the_client_cannot_choose_the_amount(
+        self, as_student, gateway_config, student, access_fee, monkeypatch
+    ):
+        """A posted amount is ignored — the server prices the access fee.
+
+        The expected figure comes from the pricing row, never from a literal here.
+        This test used to assert "5000.00" and passed only because the frontend
+        hardcoded the same number; against a deployment charging ₦50,000 it would
+        have failed for the right reason and been "fixed" by changing the literal.
+        """
         from apps.payments.gateways.base import CheckoutSession
         from apps.payments.gateways.paystack import PaystackGateway
 
@@ -171,7 +181,10 @@ class TestPaymentEndpoints:
             "/api/payments/initiate/", {"gateway": "paystack", "amount": "1.00"}, format="json"
         )
         assert response.status_code == 201
-        assert response.json()["payment"]["amount"] == "5000.00"
+        charged = response.json()["payment"]["amount"]
+        assert Decimal(charged) == access_fee.access_fee_amount
+        # The point of the test: what the client asked for was thrown away.
+        assert Decimal(charged) != Decimal("1.00")
 
     def test_gateway_options_expose_no_credentials(self, as_student, gateway_config):
         rows = as_student.get("/api/payments/gateways/").json()
